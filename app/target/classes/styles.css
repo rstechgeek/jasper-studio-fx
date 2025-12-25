@@ -1,0 +1,8 @@
+.root {
+    -fx-base: #ececec;
+    -fx-font-family: 'Segoe UI', sans-serif;
+}
+
+.workspace-area {
+    -fx-background-color: #f4f4f4;
+}

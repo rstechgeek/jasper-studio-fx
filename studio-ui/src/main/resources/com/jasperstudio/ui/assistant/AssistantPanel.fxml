@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.control.Label?>
+
+<fx:root type="BorderPane" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" style="-fx-background-color: #f4f4f4;">
+    <center>
+        <ListView fx:id="chatHistory" style="-fx-background-color: transparent; -fx-padding: 10;">
+            <placeholder>
+                <Label text="Ask anything about your report..." textFill="#999999"/>
+            </placeholder>
+        </ListView>
+    </center>
+    <bottom>
+        <VBox spacing="5" style="-fx-padding: 10; -fx-background-color: white; -fx-border-color: #ddd; -fx-border-width: 1 0 0 0;">
+            <TextArea fx:id="inputField" prefRowCount="3" wrapText="true" promptText="Type your request here..." style="-fx-background-radius: 5; -fx-border-radius: 5;" />
+            <HBox spacing="10" alignment="CENTER_RIGHT">
+                <Button fx:id="btnSend" text="Send" style="-fx-background-color: #007bff; -fx-text-fill: white; -fx-font-weight: bold; -fx-cursor: hand;" />
+            </HBox>
+        </VBox>
+    </bottom>
+</fx:root>

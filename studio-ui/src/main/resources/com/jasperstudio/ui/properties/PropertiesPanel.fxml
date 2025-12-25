@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.VBox?>
+
+<fx:root type="VBox" spacing="10.0" style="-fx-background-color: #f4f4f4; -fx-border-color: #ccc; -fx-border-width: 0 0 0 1;" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+    <padding>
+        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+    </padding>
+    <children>
+        <Label style="-fx-font-weight: bold; -fx-font-size: 14px;" text="Properties" />
+        <GridPane fx:id="grid" hgap="5.0" vgap="5.0">
+            <columnConstraints>
+                <ColumnConstraints hgrow="SOMETIMES" minWidth="90.0" />
+                <ColumnConstraints hgrow="ALWAYS" minWidth="10.0" />
+            </columnConstraints>
+            <children>
+                <!-- UUID -->
+                <Label fx:id="lblUuid" text="UUID:" GridPane.rowIndex="0" />
+                <TextField fx:id="tfUuid" editable="false" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+                <!-- Bounds -->
+                <Label fx:id="lblX" text="X:" GridPane.rowIndex="1" />
+                <Spinner fx:id="spX" editable="true" GridPane.columnIndex="1" GridPane.rowIndex="1" min="0" max="10000" amountToStepBy="1"/>
+                
+                <Label fx:id="lblY" text="Y:" GridPane.rowIndex="2" />
+                <Spinner fx:id="spY" editable="true" GridPane.columnIndex="1" GridPane.rowIndex="2" min="0" max="10000" amountToStepBy="1"/>
+                
+                <Label fx:id="lblW" text="Width:" GridPane.rowIndex="3" />
+                <Spinner fx:id="spW" editable="true" GridPane.columnIndex="1" GridPane.rowIndex="3" min="0" max="10000" amountToStepBy="1"/>
+                
+                <Label fx:id="lblH" text="Height:" GridPane.rowIndex="4" />
+                <Spinner fx:id="spH" editable="true" GridPane.columnIndex="1" GridPane.rowIndex="4" min="0" max="10000" amountToStepBy="1"/>
+
+                <!-- Text Content -->
+                <Label fx:id="lblText" text="Text:" visible="false" managed="false" GridPane.rowIndex="5" />
+                <TextField fx:id="tfText" visible="false" managed="false" GridPane.columnIndex="1" GridPane.rowIndex="5" />
+
+                <!-- Page Format -->
+                <Label fx:id="lblPageWidth" text="Page Width:" visible="false" managed="false" GridPane.rowIndex="6" />
+                <Spinner fx:id="spPageWidth" editable="true" visible="false" managed="false" GridPane.columnIndex="1" GridPane.rowIndex="6" min="0" max="10000" amountToStepBy="1"/>
+
+                <Label fx:id="lblPageHeight" text="Page Height:" visible="false" managed="false" GridPane.rowIndex="7" />
+                <Spinner fx:id="spPageHeight" editable="true" visible="false" managed="false" GridPane.columnIndex="1" GridPane.rowIndex="7" min="0" max="10000" amountToStepBy="1"/>
+
+                <Label fx:id="lblMarginLeft" text="Left Margin:" visible="false" managed="false" GridPane.rowIndex="8" />
+                <Spinner fx:id="spMarginLeft" editable="true" visible="false" managed="false" GridPane.columnIndex="1" GridPane.rowIndex="8" min="0" max="1000" amountToStepBy="1"/>
+
+                <Label fx:id="lblMarginRight" text="Right Margin:" visible="false" managed="false" GridPane.rowIndex="9" />
+                <Spinner fx:id="spMarginRight" editable="true" visible="false" managed="false" GridPane.columnIndex="1" GridPane.rowIndex="9" min="0" max="1000" amountToStepBy="1"/>
+
+                <Label fx:id="lblMarginTop" text="Top Margin:" visible="false" managed="false" GridPane.rowIndex="10" />
+                <Spinner fx:id="spMarginTop" editable="true" visible="false" managed="false" GridPane.columnIndex="1" GridPane.rowIndex="10" min="0" max="1000" amountToStepBy="1"/>
+
+                <Label fx:id="lblMarginBottom" text="Bottom Margin:" visible="false" managed="false" GridPane.rowIndex="11" />
+                <Spinner fx:id="spMarginBottom" editable="true" visible="false" managed="false" GridPane.columnIndex="1" GridPane.rowIndex="11" min="0" max="1000" amountToStepBy="1"/>
+
+                <!-- Band Properties -->
+                <Label fx:id="lblSplitType" text="Split Type:" visible="false" managed="false" GridPane.rowIndex="12" />
+                <javafx.scene.control.ComboBox fx:id="cmbSplitType" visible="false" managed="false" GridPane.columnIndex="1" GridPane.rowIndex="12" maxWidth="Infinity"/>
+
+                <Label fx:id="lblPrintWhen" text="Print When Exp:" visible="false" managed="false" GridPane.rowIndex="13" />
+                <javafx.scene.control.TextArea fx:id="taPrintWhen" visible="false" managed="false" GridPane.columnIndex="1" GridPane.rowIndex="13" prefRowCount="3" wrapText="true"/>
+            </children>
+        </GridPane>
+    </children>
+</fx:root>
