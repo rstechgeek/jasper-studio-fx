@@ -65,6 +65,22 @@ public class MainWorkspace extends BorderPane {
     @javafx.fxml.FXML
     private javafx.scene.control.Button btnRedo;
 
+    // Edit Menu
+    @javafx.fxml.FXML
+    private javafx.scene.control.MenuItem menuUndo;
+    @javafx.fxml.FXML
+    private javafx.scene.control.MenuItem menuRedo;
+    @javafx.fxml.FXML
+    private javafx.scene.control.MenuItem menuCut;
+    @javafx.fxml.FXML
+    private javafx.scene.control.MenuItem menuCopy;
+    @javafx.fxml.FXML
+    private javafx.scene.control.MenuItem menuPaste;
+    @javafx.fxml.FXML
+    private javafx.scene.control.MenuItem menuDelete;
+    @javafx.fxml.FXML
+    private javafx.scene.control.MenuItem menuSelectAll;
+
     // Menu Items
     @javafx.fxml.FXML
     private javafx.scene.control.CheckMenuItem menuShowPalette;
@@ -82,6 +98,24 @@ public class MainWorkspace extends BorderPane {
     private javafx.scene.control.CheckMenuItem menuShowRulers;
     @javafx.fxml.FXML
     private javafx.scene.control.CheckMenuItem menuSnapToGrid;
+    @javafx.fxml.FXML
+    private javafx.scene.control.CheckMenuItem menuSnapToGuides;
+    @javafx.fxml.FXML
+    private javafx.scene.control.CheckMenuItem menuSnapToGeometry;
+    @javafx.fxml.FXML
+    private javafx.scene.control.CheckMenuItem menuShowSpreadsheetTags;
+    @javafx.fxml.FXML
+    private javafx.scene.control.CheckMenuItem menuShowJSONTags;
+    @javafx.fxml.FXML
+    private javafx.scene.control.CheckMenuItem menuShowCSVTags;
+    @javafx.fxml.FXML
+    private javafx.scene.control.CheckMenuItem menuShowXLSTags;
+    @javafx.fxml.FXML
+    private javafx.scene.control.CheckMenuItem menuHighlightRenderGrid;
+    @javafx.fxml.FXML
+    private javafx.scene.control.CheckMenuItem menuShowPDF508Tags;
+    @javafx.fxml.FXML
+    private javafx.scene.control.CheckMenuItem menuShowErrorsForElements;
 
     @javafx.fxml.FXML
     private javafx.scene.control.RadioMenuItem menuStyleLight;
@@ -144,6 +178,46 @@ public class MainWorkspace extends BorderPane {
         }
         if (menuSnapToGrid != null) {
             menuSnapToGrid.selectedProperty().bindBidirectional(designerEngine.snapToGridProperty());
+        }
+
+        // Edit Actions
+        if (menuUndo != null) {
+            menuUndo.setOnAction(e -> designerEngine.getHistoryManager().undo());
+            menuUndo.disableProperty().bind(designerEngine.getHistoryManager().canUndoProperty().not());
+        }
+        if (menuRedo != null) {
+            menuRedo.setOnAction(e -> designerEngine.getHistoryManager().redo());
+            menuRedo.disableProperty().bind(designerEngine.getHistoryManager().canRedoProperty().not());
+        }
+        if (menuDelete != null) {
+            menuDelete.setOnAction(e -> designerEngine.deleteSelection());
+        }
+        if (menuSelectAll != null) {
+            menuSelectAll.setOnAction(e -> designerEngine.selectAll());
+        }
+        // Placeholders
+        if (menuCut != null)
+            menuCut.setOnAction(e -> logger.info("Cut not implemented"));
+        if (menuCopy != null)
+            menuCopy.setOnAction(e -> logger.info("Copy not implemented"));
+        if (menuPaste != null)
+            menuPaste.setOnAction(e -> logger.info("Paste not implemented"));
+
+        // View Bindings
+        bindIfExists(menuSnapToGuides, designerEngine.snapToGuidesProperty());
+        bindIfExists(menuSnapToGeometry, designerEngine.snapToGeometryProperty());
+        bindIfExists(menuShowSpreadsheetTags, designerEngine.showSpreadsheetTagsProperty());
+        bindIfExists(menuShowJSONTags, designerEngine.showJSONTagsProperty());
+        bindIfExists(menuShowCSVTags, designerEngine.showCSVTagsProperty());
+        bindIfExists(menuShowXLSTags, designerEngine.showXLSTagsProperty());
+        bindIfExists(menuHighlightRenderGrid, designerEngine.highlightRenderGridProperty());
+        bindIfExists(menuShowPDF508Tags, designerEngine.showPDF508TagsProperty());
+        bindIfExists(menuShowErrorsForElements, designerEngine.showErrorsForElementsProperty());
+    }
+
+    private void bindIfExists(javafx.scene.control.CheckMenuItem item, javafx.beans.property.BooleanProperty prop) {
+        if (item != null && prop != null) {
+            item.selectedProperty().bindBidirectional(prop);
         }
     }
 
