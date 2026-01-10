@@ -12,6 +12,11 @@
     <dependencies>
         <dependency>
             <groupId>com.jasperstudio</groupId>
+            <artifactId>ai-assistant</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.jasperstudio</groupId>
             <artifactId>designer-engine</artifactId>
             <version>${project.version}</version>
         </dependency>

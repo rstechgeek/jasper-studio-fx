@@ -8,7 +8,6 @@ import javafx.scene.control.TreeCell;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.layout.VBox;
-import javafx.util.Callback;
 
 import net.sf.jasperreports.engine.design.JRDesignElement;
 

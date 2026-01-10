@@ -1,17 +1,54 @@
 package com.jasperstudio.ui.canvas;
 
+import com.jasperstudio.descriptor.MoveElementCommand;
+import com.jasperstudio.descriptor.ResizeElementCommand;
 import com.jasperstudio.designer.DesignerEngine;
+import com.jasperstudio.model.BandModel;
+import com.jasperstudio.model.ElementModel;
 import com.jasperstudio.model.JasperDesignModel;
+import com.jasperstudio.model.JrxmlService;
+import javafx.application.Platform;
+import javafx.beans.binding.Bindings;
+import javafx.beans.value.ChangeListener;
+import javafx.collections.ListChangeListener;
+import javafx.embed.swing.SwingFXUtils;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.geometry.Bounds;
+import javafx.geometry.Point2D;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Group;
+import javafx.scene.Node;
+import javafx.scene.Parent;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.TextArea;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
+import javafx.scene.input.TransferMode;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Ellipse;
+import javafx.scene.shape.Line;
 import javafx.scene.shape.Rectangle;
+import net.sf.jasperreports.engine.*;
+import net.sf.jasperreports.engine.design.*;
+import net.sf.jasperreports.crosstabs.design.JRDesignCrosstab;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.util.HashMap;
 
 /**
  * The visualization of the Report Page.
@@ -22,40 +59,25 @@ public class ReportCanvas extends BorderPane {
 
     private final DesignerEngine engine;
 
-    @javafx.fxml.FXML
-    private javafx.scene.layout.StackPane workspaceArea;
-    @javafx.fxml.FXML
-    private javafx.scene.Group pageGroup;
-    @javafx.fxml.FXML
-    private javafx.scene.layout.StackPane pagePane;
-    @javafx.fxml.FXML
-    private javafx.scene.layout.Pane gridLayer;
-    @javafx.fxml.FXML
-    private javafx.scene.layout.Pane contentLayer;
-    @javafx.fxml.FXML
-    private javafx.scene.layout.Pane adornerLayer;
-    @javafx.fxml.FXML
-    private RulerControl hRuler;
-    @javafx.fxml.FXML
-    private RulerControl vRuler;
-    @javafx.fxml.FXML
-    private ScrollPane internalScrollPane;
+    @FXML private StackPane workspaceArea;
+    @FXML private Group pageGroup;
+    @FXML private StackPane pagePane;
+    @FXML private Pane gridLayer;
+    @FXML private Pane contentLayer;
+    @FXML private Pane adornerLayer;
+    @FXML private RulerControl hRuler;
+    @FXML private RulerControl vRuler;
+    @FXML private ScrollPane internalScrollPane;
 
-    @javafx.fxml.FXML
-    private javafx.scene.control.Button btnDesign;
-    @javafx.fxml.FXML
-    private javafx.scene.control.Button btnSource;
-    @javafx.fxml.FXML
-    private javafx.scene.control.Button btnPreview;
+    @FXML private Button btnDesign;
+    @FXML private Button btnSource;
+    @FXML private Button btnPreview;
 
-    @javafx.fxml.FXML
-    private javafx.scene.control.TextArea sourceEditor;
-    @javafx.fxml.FXML
-    private ScrollPane previewContainer;
-    @javafx.fxml.FXML
-    private javafx.scene.image.ImageView previewImage;
-    @javafx.fxml.FXML
-    private javafx.scene.layout.HBox topBox;
+    @FXML private TextArea sourceEditor;
+    @FXML private ScrollPane previewContainer;
+    @FXML private ImageView previewImage;
+    @FXML private HBox topBox;
+
 
     public ReportCanvas(DesignerEngine engine) {
         this.engine = engine;
@@ -66,12 +88,12 @@ public class ReportCanvas extends BorderPane {
     }
 
     private void loadFXML() {
-        javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("ReportCanvas.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("ReportCanvas.fxml"));
         loader.setRoot(this);
         loader.setController(this);
         try {
             loader.load();
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             logger.error("Failed to load ReportCanvas.fxml", e);
             throw new RuntimeException("Failed to load ReportCanvas.fxml", e);
         }
@@ -96,7 +118,7 @@ public class ReportCanvas extends BorderPane {
         // placement)
 
         // Initial centering
-        javafx.application.Platform.runLater(() -> {
+        Platform.runLater(() -> {
             internalScrollPane.setHvalue(0.5);
             internalScrollPane.setVvalue(0.5);
             updateWorkspaceSize();
@@ -125,7 +147,7 @@ public class ReportCanvas extends BorderPane {
 
         updateRulers();
 
-        javafx.beans.value.ChangeListener<Number> sizeListener = (obs, old, val) -> updateWorkspaceSize();
+        ChangeListener<Number> sizeListener = (obs, old, val) -> updateWorkspaceSize();
         engine.zoomFactorProperty().addListener(sizeListener);
         pagePane.widthProperty().addListener(sizeListener);
         pagePane.heightProperty().addListener(sizeListener);
@@ -149,8 +171,8 @@ public class ReportCanvas extends BorderPane {
 
         try {
             String xml = sourceEditor.getText();
-            com.jasperstudio.model.JrxmlService service = new com.jasperstudio.model.JrxmlService();
-            com.jasperstudio.model.JasperDesignModel model = service.loadFromString(xml);
+            JrxmlService service = new JrxmlService();
+            JasperDesignModel model = service.loadFromString(xml);
             engine.setDesign(model);
 
             // UI Switch
@@ -185,7 +207,7 @@ public class ReportCanvas extends BorderPane {
 
         if (engine.getDesign() != null) {
             try {
-                com.jasperstudio.model.JrxmlService service = new com.jasperstudio.model.JrxmlService();
+                JrxmlService service = new JrxmlService();
                 String xml = service.saveToString(engine.getDesign());
                 sourceEditor.setText(xml);
 
@@ -223,8 +245,8 @@ public class ReportCanvas extends BorderPane {
         if (sourceEditor.isVisible()) {
             try {
                 String xml = sourceEditor.getText();
-                com.jasperstudio.model.JrxmlService service = new com.jasperstudio.model.JrxmlService();
-                com.jasperstudio.model.JasperDesignModel model = service.loadFromString(xml);
+                JrxmlService service = new JrxmlService();
+                JasperDesignModel model = service.loadFromString(xml);
                 engine.setDesign(model);
             } catch (Exception e) {
                 engine.logError("Cannot preview: Invalid Source", e);
@@ -255,21 +277,18 @@ public class ReportCanvas extends BorderPane {
         // Run Preview Logic (Async)
         new Thread(() -> {
             try {
-                net.sf.jasperreports.engine.design.JasperDesign jd = engine.getDesign().getDesign();
-                net.sf.jasperreports.engine.JasperReport jr = net.sf.jasperreports.engine.JasperCompileManager
-                        .compileReport(jd);
-                net.sf.jasperreports.engine.JasperPrint jp = net.sf.jasperreports.engine.JasperFillManager
-                        .fillReport(jr, new java.util.HashMap<>(), new net.sf.jasperreports.engine.JREmptyDataSource());
+                JasperDesign jd = engine.getDesign().getDesign();
+                JasperReport jr = JasperCompileManager.compileReport(jd);
+                JasperPrint jp = JasperFillManager.fillReport(jr, new HashMap<>(), new JREmptyDataSource());
 
-                javafx.scene.image.Image fxImage = null;
+                Image fxImage = null;
                 if (!jp.getPages().isEmpty()) {
-                    java.awt.image.BufferedImage bim = (java.awt.image.BufferedImage) net.sf.jasperreports.engine.JasperPrintManager
-                            .printPageToImage(jp, 0, 2.0f);
-                    fxImage = javafx.embed.swing.SwingFXUtils.toFXImage(bim, null);
+                    BufferedImage bim = (BufferedImage) JasperPrintManager.printPageToImage(jp, 0, 2.0f);
+                    fxImage = SwingFXUtils.toFXImage(bim, null);
                 }
 
-                final javafx.scene.image.Image fimg = fxImage;
-                javafx.application.Platform.runLater(() -> previewImage.setImage(fimg));
+                final Image fimg = fxImage;
+                Platform.runLater(() -> previewImage.setImage(fimg));
 
             } catch (Exception ex) {
                 engine.logError("Preview Generation Failed", ex);
@@ -341,7 +360,7 @@ public class ReportCanvas extends BorderPane {
             pagePane.setScaleY(newZoom.doubleValue());
 
             // workspace min size updated by listener above
-            javafx.application.Platform.runLater(this::updateRulers);
+            Platform.runLater(this::updateRulers);
         });
 
         // Initial Zoom Apply
@@ -363,7 +382,7 @@ public class ReportCanvas extends BorderPane {
     }
 
     // Grid Visuals
-    private final javafx.scene.canvas.Canvas gridCanvas = new javafx.scene.canvas.Canvas();
+    private final Canvas gridCanvas = new Canvas();
 
     private void redrawGrid() {
         if (!gridLayer.getChildren().contains(gridCanvas)) {
@@ -379,7 +398,7 @@ public class ReportCanvas extends BorderPane {
     }
 
     private void drawGridLines() {
-        var gc = gridCanvas.getGraphicsContext2D();
+        GraphicsContext gc = gridCanvas.getGraphicsContext2D();
         gc.clearRect(0, 0, gridCanvas.getWidth(), gridCanvas.getHeight());
 
         if (!engine.showGridProperty().get()) {
@@ -392,7 +411,7 @@ public class ReportCanvas extends BorderPane {
         if (step < 5)
             step = 5;
 
-        gc.setStroke(javafx.scene.paint.Color.LIGHTGRAY);
+        gc.setStroke(Color.LIGHTGRAY);
         gc.setLineWidth(0.5);
 
         for (double x = 0; x < w; x += step) {
@@ -406,304 +425,22 @@ public class ReportCanvas extends BorderPane {
     // Adorner Group
     private final Group selectionAdorner = new Group();
 
-    private void updateSelectionVisual(com.jasperstudio.model.ElementModel model) {
-        adornerLayer.getChildren().remove(selectionAdorner);
-        selectionAdorner.getChildren().clear();
-
-        if (model != null) {
-            javafx.scene.Node visualNode = findNodeForModel(contentLayer, model);
-
-            var border = new javafx.scene.shape.Rectangle();
-            border.setStyle(
-                    "-fx-fill: transparent; -fx-stroke: #0096C9; -fx-stroke-width: 1; -fx-stroke-dash-array: 2 2;");
-            border.setMouseTransparent(true);
-
-            if (visualNode != null) {
-                Runnable updateBounds = () -> {
-                    if (visualNode.getScene() == null)
-                        return;
-                    javafx.geometry.Bounds bounds = visualNode.localToScene(visualNode.getBoundsInLocal());
-                    javafx.geometry.Bounds adornerBounds = adornerLayer.sceneToLocal(bounds);
-                    if (adornerBounds != null) {
-                        border.setX(adornerBounds.getMinX());
-                        border.setY(adornerBounds.getMinY());
-                        border.setWidth(adornerBounds.getWidth());
-                        border.setHeight(adornerBounds.getHeight());
-                    }
-                };
-
-                javafx.application.Platform.runLater(updateBounds);
-                model.xProperty().addListener(o -> javafx.application.Platform.runLater(updateBounds));
-                model.yProperty().addListener(o -> javafx.application.Platform.runLater(updateBounds));
-                model.widthProperty().addListener(o -> javafx.application.Platform.runLater(updateBounds));
-                model.heightProperty().addListener(o -> javafx.application.Platform.runLater(updateBounds));
-
-                selectionAdorner.getChildren().add(border);
-
-                createHandle(model, border, javafx.geometry.Pos.TOP_LEFT);
-                createHandle(model, border, javafx.geometry.Pos.TOP_CENTER);
-                createHandle(model, border, javafx.geometry.Pos.TOP_RIGHT);
-                createHandle(model, border, javafx.geometry.Pos.CENTER_RIGHT);
-                createHandle(model, border, javafx.geometry.Pos.BOTTOM_RIGHT);
-                createHandle(model, border, javafx.geometry.Pos.BOTTOM_CENTER);
-                createHandle(model, border, javafx.geometry.Pos.BOTTOM_LEFT);
-                createHandle(model, border, javafx.geometry.Pos.CENTER_LEFT);
-
-            } else {
-                border.xProperty().bind(model.xProperty());
-                border.yProperty().bind(model.yProperty());
-                border.widthProperty().bind(model.widthProperty());
-                border.heightProperty().bind(model.heightProperty());
-                selectionAdorner.getChildren().add(border);
-
-                createHandle(model, null, javafx.geometry.Pos.TOP_LEFT);
-                createHandle(model, null, javafx.geometry.Pos.TOP_CENTER);
-                createHandle(model, null, javafx.geometry.Pos.TOP_RIGHT);
-                createHandle(model, null, javafx.geometry.Pos.CENTER_RIGHT);
-                createHandle(model, null, javafx.geometry.Pos.BOTTOM_RIGHT);
-                createHandle(model, null, javafx.geometry.Pos.BOTTOM_CENTER);
-                createHandle(model, null, javafx.geometry.Pos.BOTTOM_LEFT);
-                createHandle(model, null, javafx.geometry.Pos.CENTER_LEFT);
-            }
-
-            adornerLayer.getChildren().add(selectionAdorner);
-        }
-    }
-
-    private javafx.scene.Node findNodeForModel(javafx.scene.Parent root, com.jasperstudio.model.ElementModel model) {
-        for (javafx.scene.Node node : root.getChildrenUnmodifiable()) {
-            if (node.getUserData() != null) {
-                if (node.getUserData() instanceof com.jasperstudio.model.ElementModel) {
-                    com.jasperstudio.model.ElementModel em = (com.jasperstudio.model.ElementModel) node.getUserData();
-                    if (em.getElement() == model.getElement()) {
-                        return node;
-                    }
-                }
-            }
-            if (node instanceof javafx.scene.Parent) {
-                javafx.scene.Node found = findNodeForModel((javafx.scene.Parent) node, model);
-                if (found != null)
-                    return found;
-            }
-        }
-        return null;
-    }
-
-    private void createHandle(com.jasperstudio.model.ElementModel model, javafx.scene.shape.Rectangle linkedBorder,
-            javafx.geometry.Pos pos) {
-        double msgSize = 6;
-        var handle = new javafx.scene.shape.Rectangle(msgSize, msgSize);
-        handle.setStyle("-fx-fill: white; -fx-stroke: #0096C9; -fx-stroke-width: 1;");
-
-        if (linkedBorder != null) {
-            handle.layoutXProperty().bind(javafx.beans.binding.Bindings.createDoubleBinding(() -> {
-                switch (pos) {
-                    case TOP_LEFT:
-                    case CENTER_LEFT:
-                    case BOTTOM_LEFT:
-                        return linkedBorder.getX() - msgSize / 2;
-                    case TOP_CENTER:
-                    case BOTTOM_CENTER:
-                        return linkedBorder.getX() + linkedBorder.getWidth() / 2 - msgSize / 2;
-                    case TOP_RIGHT:
-                    case CENTER_RIGHT:
-                    case BOTTOM_RIGHT:
-                        return linkedBorder.getX() + linkedBorder.getWidth() - msgSize / 2;
-                    default:
-                        return 0.0;
-                }
-            }, linkedBorder.xProperty(), linkedBorder.widthProperty()));
-
-            handle.layoutYProperty().bind(javafx.beans.binding.Bindings.createDoubleBinding(() -> {
-                switch (pos) {
-                    case TOP_LEFT:
-                    case TOP_CENTER:
-                    case TOP_RIGHT:
-                        return linkedBorder.getY() - msgSize / 2;
-                    case CENTER_LEFT:
-                    case CENTER_RIGHT:
-                        return linkedBorder.getY() + linkedBorder.getHeight() / 2 - msgSize / 2;
-                    case BOTTOM_LEFT:
-                    case BOTTOM_CENTER:
-                    case BOTTOM_RIGHT:
-                        return linkedBorder.getY() + linkedBorder.getHeight() - msgSize / 2;
-                    default:
-                        return 0.0;
-                }
-            }, linkedBorder.yProperty(), linkedBorder.heightProperty()));
-        } else {
-            handle.layoutXProperty().bind(javafx.beans.binding.Bindings.createDoubleBinding(() -> {
-                switch (pos) {
-                    case TOP_LEFT:
-                    case CENTER_LEFT:
-                    case BOTTOM_LEFT:
-                        return model.getX() - msgSize / 2;
-                    case TOP_CENTER:
-                    case BOTTOM_CENTER:
-                        return model.getX() + model.getWidth() / 2 - msgSize / 2;
-                    case TOP_RIGHT:
-                    case CENTER_RIGHT:
-                    case BOTTOM_RIGHT:
-                        return model.getX() + model.getWidth() - msgSize / 2;
-                    default:
-                        return 0.0;
-                }
-            }, model.xProperty(), model.widthProperty()));
-
-            handle.layoutYProperty().bind(javafx.beans.binding.Bindings.createDoubleBinding(() -> {
-                switch (pos) {
-                    case TOP_LEFT:
-                    case TOP_CENTER:
-                    case TOP_RIGHT:
-                        return model.getY() - msgSize / 2;
-                    case CENTER_LEFT:
-                    case CENTER_RIGHT:
-                        return model.getY() + model.getHeight() / 2 - msgSize / 2;
-                    case BOTTOM_LEFT:
-                    case BOTTOM_CENTER:
-                    case BOTTOM_RIGHT:
-                        return model.getY() + model.getHeight() - msgSize / 2;
-                    default:
-                        return 0.0;
-                }
-            }, model.yProperty(), model.heightProperty()));
-        }
-
-        switch (pos) {
-            case TOP_LEFT:
-                handle.setCursor(javafx.scene.Cursor.NW_RESIZE);
-                break;
-            case TOP_CENTER:
-                handle.setCursor(javafx.scene.Cursor.N_RESIZE);
-                break;
-            case TOP_RIGHT:
-                handle.setCursor(javafx.scene.Cursor.NE_RESIZE);
-                break;
-            case CENTER_RIGHT:
-                handle.setCursor(javafx.scene.Cursor.E_RESIZE);
-                break;
-            case BOTTOM_RIGHT:
-                handle.setCursor(javafx.scene.Cursor.SE_RESIZE);
-                break;
-            case BOTTOM_CENTER:
-                handle.setCursor(javafx.scene.Cursor.S_RESIZE);
-                break;
-            case BOTTOM_LEFT:
-                handle.setCursor(javafx.scene.Cursor.SW_RESIZE);
-                break;
-            case CENTER_LEFT:
-                handle.setCursor(javafx.scene.Cursor.W_RESIZE);
-                break;
-            default:
-                handle.setCursor(javafx.scene.Cursor.DEFAULT);
-        }
-
-        handle.setOnMousePressed(e -> {
-            e.consume();
-            final double startX = e.getSceneX();
-            final double startY = e.getSceneY();
-            final int startMX = (int) model.getX();
-            final int startMY = (int) model.getY();
-            final int startW = (int) model.getWidth();
-            final int startH = (int) model.getHeight();
-
-            handle.setOnMouseDragged(dragEvent -> {
-                double deltaX = dragEvent.getSceneX() - startX;
-                double deltaY = dragEvent.getSceneY() - startY;
-
-                double newX = startMX, newY = startMY, newW = startW, newH = startH;
-
-                switch (pos) {
-                    case TOP_LEFT:
-                    case CENTER_LEFT:
-                    case BOTTOM_LEFT:
-                        double snX = snap(startMX + deltaX);
-                        newX = snX;
-                        newW -= (snX - startMX);
-                        break;
-                    case TOP_RIGHT:
-                    case CENTER_RIGHT:
-                    case BOTTOM_RIGHT:
-                        newW = snap(startW + deltaX);
-                        break;
-                    default:
-                        break;
-                }
-
-                switch (pos) {
-                    case TOP_LEFT:
-                    case TOP_CENTER:
-                    case TOP_RIGHT:
-                        double snY = snap(startMY + deltaY);
-                        newY = snY;
-                        newH -= (snY - startMY);
-                        break;
-                    case BOTTOM_LEFT:
-                    case BOTTOM_CENTER:
-                    case BOTTOM_RIGHT:
-                        newH = snap(startH + deltaY);
-                        break;
-                    default:
-                        break;
-                }
-
-                if (newW < 10)
-                    newW = 10;
-                if (newH < 10)
-                    newH = 10;
-
-                model.setX((int) newX);
-                model.setY((int) newY);
-                model.setWidth((int) newW);
-                model.setHeight((int) newH);
-
-                dragEvent.consume();
-            });
-
-            handle.setOnMouseReleased(relEvent -> {
-                // Determine final state
-                int endX = (int) model.getX();
-                int endY = (int) model.getY();
-                int endW = (int) model.getWidth();
-                int endH = (int) model.getHeight();
-
-                if (startMX != endX || startMY != endY || startW != endW || startH != endH) {
-                    com.jasperstudio.descriptor.ResizeElementCommand cmd = new com.jasperstudio.descriptor.ResizeElementCommand(
-                            model, startMX, startMY, startW, startH, endX, endY, endW, endH);
-                    engine.executeCommand(cmd); // Pushes to stack (and redundant execute)
-                }
-
-                // Unbind listeners to prevent leaks/conflicts?
-                // In standard JavaFX DnD inside IsPressed, it handles itself usually, but
-                // explicitly clearing is safer.
-                handle.setOnMouseDragged(null);
-                handle.setOnMouseReleased(null);
-                relEvent.consume();
-            });
-        });
-
-        selectionAdorner.getChildren().add(handle);
-    }
-
     private void updateSelectionVisual(Object selection) {
         adornerLayer.getChildren().clear();
 
-        if (selection instanceof com.jasperstudio.model.ElementModel) {
-            com.jasperstudio.model.ElementModel model = (com.jasperstudio.model.ElementModel) selection;
+        if (selection instanceof ElementModel model) {
             renderElementSelection(model);
-        } else if (selection instanceof com.jasperstudio.model.BandModel) {
-            com.jasperstudio.model.BandModel band = (com.jasperstudio.model.BandModel) selection;
+        } else if (selection instanceof BandModel band) {
             renderBandSelection(band);
         }
     }
 
     // Helper to find node for band
-    private javafx.scene.Node findNodeForBand(com.jasperstudio.model.BandModel band) {
+    private Node findNodeForBand(BandModel band) {
         if (contentLayer.getChildren().isEmpty())
             return null;
-        if (contentLayer.getChildren().get(0) instanceof javafx.scene.layout.VBox) {
-            javafx.scene.layout.VBox container = (javafx.scene.layout.VBox) contentLayer.getChildren().get(0);
-            for (javafx.scene.Node n : container.getChildren()) {
+        if (contentLayer.getChildren().get(0) instanceof VBox container) {
+            for (Node n : container.getChildren()) {
                 if (band.equals(n.getUserData()))
                     return n;
             }
@@ -711,8 +448,8 @@ public class ReportCanvas extends BorderPane {
         return null;
     }
 
-    private void renderBandSelection(com.jasperstudio.model.BandModel band) {
-        javafx.scene.Node bandNode = findNodeForBand(band);
+    private void renderBandSelection(BandModel band) {
+        Node bandNode = findNodeForBand(band);
         if (bandNode != null) {
             // Coordinate transformation: BandPane -> VBox -> ContentLayer
             // AdornerLayer is sibling to ContentLayer.
@@ -720,38 +457,37 @@ public class ReportCanvas extends BorderPane {
             // However, ContentLayer translation might be 0,0.
 
             // Simplest is using localToScene -> sceneToLocal
-            javafx.geometry.Bounds nodeBounds = bandNode.localToScene(bandNode.getLayoutBounds());
-            javafx.geometry.Bounds adornerBounds = adornerLayer.sceneToLocal(nodeBounds);
+            Bounds nodeBounds = bandNode.localToScene(bandNode.getLayoutBounds());
+            Bounds adornerBounds = adornerLayer.sceneToLocal(nodeBounds);
 
             Rectangle selectionRect = new Rectangle();
             selectionRect.setX(adornerBounds.getMinX());
             selectionRect.setY(adornerBounds.getMinY());
             selectionRect.setWidth(adornerBounds.getWidth());
             selectionRect.setHeight(adornerBounds.getHeight());
-            selectionRect.setFill(javafx.scene.paint.Color.rgb(0, 0, 255, 0.05));
-            selectionRect.setStroke(javafx.scene.paint.Color.BLUE);
+            selectionRect.setFill(Color.rgb(0, 0, 255, 0.05));
+            selectionRect.setStroke(Color.BLUE);
             selectionRect.setStrokeWidth(2);
 
             adornerLayer.getChildren().add(selectionRect);
         }
     }
 
-    private javafx.scene.Node findNodeForModel(com.jasperstudio.model.ElementModel model) {
+    private Node findNodeForModel(ElementModel model) {
         if (contentLayer.getChildren().isEmpty())
             return null;
-        if (contentLayer.getChildren().get(0) instanceof javafx.scene.layout.VBox) {
-            javafx.scene.layout.VBox container = (javafx.scene.layout.VBox) contentLayer.getChildren().get(0);
+        if (contentLayer.getChildren().get(0) instanceof VBox container) {
             return findNodeRecursive(container, model);
         }
         return null;
     }
 
-    private javafx.scene.Node findNodeRecursive(javafx.scene.Parent parent, com.jasperstudio.model.ElementModel model) {
-        for (javafx.scene.Node child : parent.getChildrenUnmodifiable()) {
+    private Node findNodeRecursive(Parent parent, ElementModel model) {
+        for (Node child : parent.getChildrenUnmodifiable()) {
             if (model.equals(child.getUserData()))
                 return child;
-            if (child instanceof javafx.scene.Parent) {
-                javafx.scene.Node found = findNodeRecursive((javafx.scene.Parent) child, model);
+            if (child instanceof Parent) {
+                Node found = findNodeRecursive((Parent) child, model);
                 if (found != null)
                     return found;
             }
@@ -759,103 +495,153 @@ public class ReportCanvas extends BorderPane {
         return null;
     }
 
-    private void renderElement(com.jasperstudio.model.ElementModel model) {
+    private void renderElement(ElementModel model) {
         renderElement(model, contentLayer, null);
     }
 
-    private void renderElement(com.jasperstudio.model.ElementModel model, Pane parentContainer,
-            com.jasperstudio.model.ElementModel parentModel) {
-        javafx.scene.Node visual = null;
-        net.sf.jasperreports.engine.design.JRDesignElement jr = model.getElement();
-
-        if (jr instanceof net.sf.jasperreports.engine.design.JRDesignStaticText) {
-            var label = new javafx.scene.control.Label(
-                    ((net.sf.jasperreports.engine.design.JRDesignStaticText) jr).getText());
-            label.setStyle(
-                    "-fx-border-color: #ddd; -fx-background-color: transparent; -fx-padding: 2; -fx-alignment: center-left;");
-            visual = label;
-        } else if (jr instanceof net.sf.jasperreports.engine.design.JRDesignTextField) {
-            var tf = new javafx.scene.control.Label("$F{...}");
-            var minExpr = ((net.sf.jasperreports.engine.design.JRDesignTextField) jr).getExpression();
-            if (minExpr != null)
-                tf.setText(minExpr.getText());
-            tf.setStyle(
-                    "-fx-border-color: #ccc; -fx-background-color: #f0f8ff; -fx-padding: 2; -fx-text-fill: #0066cc;");
-            visual = tf;
-        } else if (jr instanceof net.sf.jasperreports.engine.design.JRDesignFrame) {
-            var framePane = new javafx.scene.layout.Pane();
-            framePane.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-background-color: rgba(0,0,0,0.05);");
-            setupDropTarget(framePane, model);
-            net.sf.jasperreports.engine.design.JRDesignFrame frame = (net.sf.jasperreports.engine.design.JRDesignFrame) jr;
-            net.sf.jasperreports.engine.JRElement[] childrenArray = frame.getElements();
-            if (childrenArray != null) {
-                for (net.sf.jasperreports.engine.JRElement child : childrenArray) {
-                    if (child instanceof net.sf.jasperreports.engine.design.JRDesignElement) {
-                        renderElement(new com.jasperstudio.model.ElementModel(
-                                (net.sf.jasperreports.engine.design.JRDesignElement) child), framePane, model);
-                    }
-                }
-            }
-            visual = framePane;
-        } else if (jr instanceof net.sf.jasperreports.engine.design.JRDesignRectangle) {
-            var rect = new javafx.scene.shape.Rectangle();
-            rect.setFill(javafx.scene.paint.Color.WHITE);
-            rect.setStroke(javafx.scene.paint.Color.BLACK);
-            rect.setStrokeWidth(1);
-            rect.widthProperty().bind(model.widthProperty());
-            rect.heightProperty().bind(model.heightProperty());
-            visual = rect;
-        } else if (jr instanceof net.sf.jasperreports.engine.design.JRDesignEllipse) {
-            var ellipse = new javafx.scene.shape.Ellipse();
-            ellipse.setFill(javafx.scene.paint.Color.WHITE);
-            ellipse.setStroke(javafx.scene.paint.Color.BLACK);
-            ellipse.centerXProperty().bind(model.widthProperty().divide(2));
-            ellipse.centerYProperty().bind(model.heightProperty().divide(2));
-            ellipse.radiusXProperty().bind(model.widthProperty().divide(2));
-            ellipse.radiusYProperty().bind(model.heightProperty().divide(2));
-            visual = ellipse;
-        } else if (jr instanceof net.sf.jasperreports.engine.design.JRDesignLine) {
-            var line = new javafx.scene.shape.Line();
-            line.setStroke(javafx.scene.paint.Color.BLACK);
-            line.setStartX(0);
-            line.setStartY(0);
-            line.endXProperty().bind(model.widthProperty());
-            line.endYProperty().bind(model.heightProperty());
-            visual = line;
-        } else if (jr instanceof net.sf.jasperreports.engine.design.JRDesignBreak) {
-            var brk = new javafx.scene.shape.Line();
-            brk.setStyle("-fx-stroke: red; -fx-stroke-dash-array: 5 5;");
-            brk.setStartX(0);
-            brk.setStartY(0);
-            brk.endXProperty().bind(model.widthProperty());
-            brk.setEndY(0);
-            visual = brk;
-        } else if (jr instanceof net.sf.jasperreports.engine.design.JRDesignImage) {
-            var imgPlaceholder = new javafx.scene.layout.StackPane();
-            imgPlaceholder.setStyle("-fx-background-color: #eee; -fx-border-color: #666;");
-            imgPlaceholder.getChildren().add(new javafx.scene.control.Label("IMG"));
-            visual = imgPlaceholder;
-        } else {
-            var placeholder = new javafx.scene.shape.Rectangle();
-            placeholder.setStyle("-fx-fill: gray;");
-            placeholder.widthProperty().bind(model.widthProperty());
-            placeholder.heightProperty().bind(model.heightProperty());
-            visual = placeholder;
-        }
+    private void renderElement(ElementModel model, Pane parentContainer, ElementModel parentModel) {
+        Node visual = createVisualForElement(model);
 
         if (visual != null) {
             visual.setUserData(model);
             visual.layoutXProperty().bind(model.xProperty());
             visual.layoutYProperty().bind(model.yProperty());
+
             if (visual instanceof javafx.scene.control.Control) {
                 ((javafx.scene.control.Control) visual).prefWidthProperty().bind(model.widthProperty());
                 ((javafx.scene.control.Control) visual).prefHeightProperty().bind(model.heightProperty());
-            } else if (visual instanceof javafx.scene.layout.Pane) {
-                ((javafx.scene.layout.Pane) visual).prefWidthProperty().bind(model.widthProperty());
-                ((javafx.scene.layout.Pane) visual).prefHeightProperty().bind(model.heightProperty());
+            } else if (visual instanceof Pane) {
+                ((Pane) visual).prefWidthProperty().bind(model.widthProperty());
+                ((Pane) visual).prefHeightProperty().bind(model.heightProperty());
             }
+
             makeInteractive(visual, model);
             parentContainer.getChildren().add(visual);
+        }
+    }
+
+    private Node createVisualForElement(ElementModel model) {
+        JRDesignElement jr = model.getElement();
+
+        switch (jr) {
+            case JRDesignStaticText jrDesignStaticText -> {
+                Label label = new Label(jrDesignStaticText.getText());
+                label.setStyle(
+                        "-fx-border-color: #ddd; -fx-background-color: transparent; -fx-padding: 2; -fx-alignment: center-left;");
+                return label;
+            }
+            case JRDesignTextField jrDesignTextField -> {
+                Label tf = new Label("$F{...}");
+                JRExpression minExpr = jrDesignTextField.getExpression();
+                if (minExpr != null)
+                    tf.setText(minExpr.getText());
+                tf.setStyle(
+                        "-fx-border-color: #ccc; -fx-background-color: #f0f8ff; -fx-padding: 2; -fx-text-fill: #0066cc;");
+                return tf;
+            }
+            case JRDesignFrame frame -> {
+                Pane framePane = new Pane();
+                framePane.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-background-color: rgba(0,0,0,0.05);");
+                setupDropTarget(framePane, model);
+                JRElement[] childrenArray = frame.getElements();
+                if (childrenArray != null) {
+                    for (JRElement child : childrenArray) {
+                        if (child instanceof JRDesignElement) {
+                            renderElement(new ElementModel((JRDesignElement) child), framePane, model);
+                        }
+                    }
+                }
+                return framePane;
+            }
+            case JRDesignRectangle ignored -> {
+                Rectangle rect = new Rectangle();
+                rect.setFill(Color.WHITE);
+                rect.setStroke(Color.BLACK);
+                rect.setStrokeWidth(1);
+                rect.widthProperty().bind(model.widthProperty());
+                rect.heightProperty().bind(model.heightProperty());
+
+                // Check if it's a CHART placeholder
+                if (jr.getPropertiesMap().containsProperty("com.jasperstudio.component.type") &&
+                        "CHART".equals(jr.getPropertiesMap().getProperty("com.jasperstudio.component.type"))) {
+                    StackPane chartPlaceholder = new StackPane();
+                    chartPlaceholder.setStyle("-fx-background-color: #fce8b2; -fx-border-color: #f1c40f;");
+                    chartPlaceholder.getChildren().add(new Label("CHART (Placeholder)"));
+                    // Bind size
+                    chartPlaceholder.prefWidthProperty().bind(model.widthProperty());
+                    chartPlaceholder.prefHeightProperty().bind(model.heightProperty());
+                    return chartPlaceholder;
+                }
+                return rect;
+            }
+            case JRDesignEllipse ignored -> {
+                Ellipse ellipse = new Ellipse();
+                ellipse.setFill(Color.WHITE);
+                ellipse.setStroke(Color.BLACK);
+                ellipse.centerXProperty().bind(model.widthProperty().divide(2));
+                ellipse.centerYProperty().bind(model.heightProperty().divide(2));
+                ellipse.radiusXProperty().bind(model.widthProperty().divide(2));
+                ellipse.radiusYProperty().bind(model.heightProperty().divide(2));
+                return ellipse;
+            }
+            case JRDesignLine ignored -> {
+                Line line = new Line();
+                line.setStroke(Color.BLACK);
+                line.setStartX(0);
+                line.setStartY(0);
+                line.endXProperty().bind(model.widthProperty());
+                line.endYProperty().bind(model.heightProperty());
+                return line;
+            }
+            case JRDesignBreak ignored -> {
+                Line brk = new Line();
+                brk.setStyle("-fx-stroke: red; -fx-stroke-dash-array: 5 5;");
+                brk.setStartX(0);
+                brk.setStartY(0);
+                brk.endXProperty().bind(model.widthProperty());
+                brk.setEndY(0);
+                return brk;
+            }
+            case JRDesignImage ignored -> {
+                StackPane imgPlaceholder = new StackPane();
+                imgPlaceholder.setStyle("-fx-background-color: #eee; -fx-border-color: #666;");
+
+                String labelText = "IMG";
+                // Check if it's a barcode
+                if (jr.getPropertiesMap().containsProperty("com.jasperstudio.component.type") &&
+                        "BARCODE".equals(jr.getPropertiesMap().getProperty("com.jasperstudio.component.type"))) {
+                    labelText = "BARCODE";
+                    imgPlaceholder.setStyle("-fx-background-color: #fff; -fx-border-color: #000;");
+                }
+                imgPlaceholder.getChildren().add(new Label(labelText));
+                return imgPlaceholder;
+            }
+            case JRDesignSubreport ignored -> {
+                StackPane subPlaceholder = new StackPane();
+                subPlaceholder.setStyle("-fx-background-color: #e0e0e0; -fx-border-color: #666; -fx-border-style: dashed;");
+                subPlaceholder.getChildren().add(new Label("SUBREPORT"));
+                return subPlaceholder;
+            }
+            case JRDesignChart ignored -> {
+                StackPane chartPlaceholder = new StackPane();
+                chartPlaceholder.setStyle("-fx-background-color: #fce8b2; -fx-border-color: #f1c40f;");
+                chartPlaceholder.getChildren().add(new Label("CHART (Pie)"));
+                return chartPlaceholder;
+            }
+            case JRDesignCrosstab ignored -> {
+                StackPane xtabPlaceholder = new StackPane();
+                xtabPlaceholder
+                        .setStyle("-fx-background-color: #d1c4e9; -fx-border-color: #673ab7; -fx-border-style: dotted;");
+                xtabPlaceholder.getChildren().add(new Label("CROSSTAB"));
+                return xtabPlaceholder;
+            }
+            case null, default -> {
+                Rectangle placeholder = new Rectangle();
+                placeholder.setStyle("-fx-fill: gray;");
+                placeholder.widthProperty().bind(model.widthProperty());
+                placeholder.heightProperty().bind(model.heightProperty());
+                return placeholder;
+            }
         }
     }
 
@@ -875,7 +661,7 @@ public class ReportCanvas extends BorderPane {
 
         // Let's restructure:
         // contentLayer will contain a VBox.
-        javafx.scene.layout.VBox bandsContainer = new javafx.scene.layout.VBox();
+        VBox bandsContainer = new VBox();
         bandsContainer.setPrefWidth(design.getPageWidth());
 
         // Bind VBox width
@@ -899,22 +685,22 @@ public class ReportCanvas extends BorderPane {
         gridLayer.getChildren().add(marginRect);
 
         // Render Bands
-        for (com.jasperstudio.model.BandModel band : design.getBands()) {
+        for (BandModel band : design.getBands()) {
             renderBand(band, bandsContainer);
         }
 
         // Listen for band changes (e.g. optional bands added/removed via sync)
-        design.getBands().addListener((javafx.collections.ListChangeListener<com.jasperstudio.model.BandModel>) c -> {
+        design.getBands().addListener((ListChangeListener<BandModel>) c -> {
             while (c.next()) {
                 if (c.wasRemoved()) {
-                    for (com.jasperstudio.model.BandModel rem : c.getRemoved()) {
+                    for (BandModel rem : c.getRemoved()) {
                         bandsContainer.getChildren().removeIf(n -> n.getUserData() == rem);
                     }
                 }
                 if (c.wasAdded()) {
                     // For sync() pattern (clear/add-all), append is fine.
                     // We rely on the order of additions matching the desired display order.
-                    for (com.jasperstudio.model.BandModel am : c.getAddedSubList()) {
+                    for (BandModel am : c.getAddedSubList()) {
                         renderBand(am, bandsContainer);
                     }
                 }
@@ -932,7 +718,7 @@ public class ReportCanvas extends BorderPane {
         // For now, simple logic
     }
 
-    private void renderBand(com.jasperstudio.model.BandModel band, javafx.scene.layout.VBox container) {
+    private void renderBand(BandModel band, VBox container) {
         Pane bandPane = new Pane();
         bandPane.setUserData(band);
         bandPane.getStyleClass().add("band-pane");
@@ -945,7 +731,7 @@ public class ReportCanvas extends BorderPane {
         container.prefWidthProperty().addListener((o, old, v) -> bandPane.setPrefWidth(v.doubleValue()));
 
         // Label for Band Name
-        javafx.scene.control.Label bandLabel = new javafx.scene.control.Label(band.getType());
+        Label bandLabel = new Label(band.getType());
         bandLabel.setStyle(
                 "-fx-font-size: 10px; -fx-text-fill: #aaa; -fx-background-color: rgba(255,255,255,0.7); -fx-padding: 2 5; -fx-background-radius: 4;");
 
@@ -959,20 +745,20 @@ public class ReportCanvas extends BorderPane {
         container.getChildren().add(bandPane);
 
         // Render Elements in this Band
-        for (com.jasperstudio.model.ElementModel em : band.getElements()) {
+        for (ElementModel em : band.getElements()) {
             renderElement(em, bandPane, null);
         }
 
         band.getElements()
-                .addListener((javafx.collections.ListChangeListener<com.jasperstudio.model.ElementModel>) c -> {
+                .addListener((ListChangeListener<ElementModel>) c -> {
                     while (c.next()) {
                         if (c.wasAdded()) {
-                            for (com.jasperstudio.model.ElementModel em : c.getAddedSubList()) {
+                            for (ElementModel em : c.getAddedSubList()) {
                                 renderElement(em, bandPane, null);
                             }
                         }
                         if (c.wasRemoved()) {
-                            for (com.jasperstudio.model.ElementModel em : c.getRemoved()) {
+                            for (ElementModel em : c.getRemoved()) {
                                 bandPane.getChildren().removeIf(n -> n.getUserData() == em);
                             }
                         }
@@ -983,10 +769,10 @@ public class ReportCanvas extends BorderPane {
         setupDropTarget(bandPane, band);
     }
 
-    private void setupDropTarget(javafx.scene.Node target, com.jasperstudio.model.BandModel bandModel) {
+    private void setupDropTarget(Node target, BandModel bandModel) {
         target.setOnDragOver(event -> {
             if (event.getDragboard().hasString())
-                event.acceptTransferModes(javafx.scene.input.TransferMode.COPY);
+                event.acceptTransferModes(TransferMode.COPY);
             event.consume();
         });
 
@@ -1008,10 +794,10 @@ public class ReportCanvas extends BorderPane {
         });
     }
 
-    private void setupDropTarget(javafx.scene.Node target, com.jasperstudio.model.ElementModel containerModel) {
+    private void setupDropTarget(Node target, ElementModel containerModel) {
         target.setOnDragOver(event -> {
             if (event.getDragboard().hasString())
-                event.acceptTransferModes(javafx.scene.input.TransferMode.COPY);
+                event.acceptTransferModes(TransferMode.COPY);
             event.consume();
         });
 
@@ -1035,7 +821,7 @@ public class ReportCanvas extends BorderPane {
         return value;
     }
 
-    private void makeInteractive(javafx.scene.Node node, com.jasperstudio.model.ElementModel model) {
+    private void makeInteractive(Node node, ElementModel model) {
         node.setOnMousePressed(e -> {
             // Only select if not already selected (optimization)
             if (engine.getSelection() != model) {
@@ -1067,82 +853,66 @@ public class ReportCanvas extends BorderPane {
                 boolean bandChanged = false;
 
                 // Find band under mouse to support moving across bands
-                javafx.geometry.Point2D scenePoint = new javafx.geometry.Point2D(eRelease.getSceneX(),
-                        eRelease.getSceneY());
-
-                if (contentLayer.getChildren().size() > 0
-                        && contentLayer.getChildren().get(0) instanceof javafx.scene.layout.VBox) {
-                    javafx.scene.layout.VBox container = (javafx.scene.layout.VBox) contentLayer.getChildren().get(0);
-                    for (javafx.scene.Node bandNode : container.getChildren()) {
-                        javafx.geometry.Bounds bounds = bandNode.localToScene(bandNode.getBoundsInLocal());
-                        if (bounds.contains(scenePoint)) {
-                            // Found target band
-                            if (bandNode.getUserData() instanceof com.jasperstudio.model.BandModel) {
-                                com.jasperstudio.model.BandModel targetBand = (com.jasperstudio.model.BandModel) bandNode
-                                        .getUserData();
-
-                                // Check if we are staying in the same band
-                                if (targetBand.getElements().contains(model)) {
-                                    // Same band move -> Use Undoable Command
-
-                                    // Calculate Y relative to band (should match model.y if properly synced, but
-                                    // let's be precise)
-                                    // Actually model.y is relative to band in our model?
-                                    // Yes, ElementModel stores relative coordinates.
-                                    // During drag we updated model.x/y assuming they are relative to *visual
-                                    // parent*, which IS the band pane.
-                                    // So model.getX/Y are already correct relative coordinates.
-
-                                    if (initialX != model.getX() || initialY != model.getY()) {
-                                        com.jasperstudio.descriptor.MoveElementCommand cmd = new com.jasperstudio.descriptor.MoveElementCommand(
-                                                model, initialX, initialY, (int) model.getX(), (int) model.getY());
-                                        engine.executeCommand(cmd);
-                                    }
-
-                                } else {
-                                    // Changed band -> Handled by engine (TODO: Make undoable)
-                                    // Calculate Y relative to new band
-                                    javafx.geometry.Point2D nodeScene = node.localToScene(0, 0);
-                                    javafx.geometry.Point2D nodeInBand = bandNode.sceneToLocal(nodeScene);
-
-                                    int newRelY = (int) nodeInBand.getY();
-                                    if (newRelY < 0)
-                                        newRelY = 0;
-
-                                    engine.moveElementToBand(model, targetBand, newRelY);
-                                }
-                                bandChanged = true;
-                            }
-                            break;
-                        }
-                    }
-                }
-
-                if (!bandChanged) {
-                    // Dropped outside any band or logic failed?
-                    // If we just moved within current band but 'contains' check failed for some
-                    // reason?
-                    // Fallback: If X/Y changed, commit it as move.
-                    if (initialX != model.getX() || initialY != model.getY()) {
-                        com.jasperstudio.descriptor.MoveElementCommand cmd = new com.jasperstudio.descriptor.MoveElementCommand(
-                                model, initialX, initialY, (int) model.getX(), (int) model.getY());
-                        engine.executeCommand(cmd);
-                    }
-                }
+                handleElementDrop(node, model, eRelease, initialX, initialY);
             });
         });
     }
 
-    private void renderElementSelection(com.jasperstudio.model.ElementModel model) {
-        javafx.scene.Node node = findNodeForModel(model);
+    private void handleElementDrop(Node node, ElementModel model, MouseEvent eRelease, int initialX, int initialY) {
+        boolean bandChanged = false;
+        Point2D scenePoint = new Point2D(eRelease.getSceneX(), eRelease.getSceneY());
+
+        if (!contentLayer.getChildren().isEmpty() && contentLayer.getChildren().get(0) instanceof VBox container) {
+            for (Node bandNode : container.getChildren()) {
+                Bounds bounds = bandNode.localToScene(bandNode.getBoundsInLocal());
+                if (bounds.contains(scenePoint)) {
+                    // Found target band
+                    if (bandNode.getUserData() instanceof BandModel targetBand) {
+
+                        // Check if we are staying in the same band
+                        if (targetBand.getElements().contains(model)) {
+                            if (initialX != model.getX() || initialY != model.getY()) {
+                                MoveElementCommand cmd = new MoveElementCommand(
+                                        model, initialX, initialY, (int) model.getX(), (int) model.getY());
+                                engine.executeCommand(cmd);
+                            }
+                        } else {
+                            // Changed band
+                            Point2D nodeScene = node.localToScene(0, 0);
+                            Point2D nodeInBand = bandNode.sceneToLocal(nodeScene);
+
+                            int newRelY = (int) nodeInBand.getY();
+                            if (newRelY < 0) newRelY = 0;
+
+                            engine.moveElementToBand(model, targetBand, newRelY);
+                        }
+                        bandChanged = true;
+                    }
+                    break;
+                }
+            }
+        }
+
+        if (!bandChanged) {
+            // Fallback: If X/Y changed, commit it as move.
+            if (initialX != model.getX() || initialY != model.getY()) {
+                MoveElementCommand cmd = new MoveElementCommand(
+                        model, initialX, initialY, (int) model.getX(), (int) model.getY());
+                engine.executeCommand(cmd);
+            }
+        }
+    }
+
+    private void renderElementSelection(ElementModel model) {
+        Node node = findNodeForModel(model);
         if (node == null)
             return;
 
         selectionAdorner.getChildren().clear();
 
         Rectangle border = new Rectangle();
-        border.setFill(javafx.scene.paint.Color.TRANSPARENT);
-        border.setStroke(javafx.scene.paint.Color.BLUE);
+        border.setFill(Color.TRANSPARENT);
+        border.setStroke(Color.BLUE);
         border.setStrokeWidth(1);
         border.getStrokeDashArray().addAll(5.0, 5.0);
         border.setMouseTransparent(true);
@@ -1152,8 +922,8 @@ public class ReportCanvas extends BorderPane {
         Runnable updateBounds = () -> {
             if (node.getScene() == null)
                 return;
-            javafx.geometry.Bounds nodeBounds = node.localToScene(node.getLayoutBounds());
-            javafx.geometry.Bounds adornerBounds = adornerLayer.sceneToLocal(nodeBounds);
+            Bounds nodeBounds = node.localToScene(node.getLayoutBounds());
+            Bounds adornerBounds = adornerLayer.sceneToLocal(nodeBounds);
             if (adornerBounds != null) {
                 border.setX(adornerBounds.getMinX());
                 border.setY(adornerBounds.getMinY());
@@ -1163,11 +933,10 @@ public class ReportCanvas extends BorderPane {
         };
 
         // Update initial
-        javafx.application.Platform.runLater(updateBounds);
+        Platform.runLater(updateBounds);
 
         // Listeners
-        javafx.beans.value.ChangeListener<Number> changeListener = (o, old, v) -> javafx.application.Platform
-                .runLater(updateBounds);
+        ChangeListener<Number> changeListener = (o, old, v) -> Platform.runLater(updateBounds);
         model.xProperty().addListener(changeListener);
         model.yProperty().addListener(changeListener);
         model.widthProperty().addListener(changeListener);
@@ -1176,20 +945,19 @@ public class ReportCanvas extends BorderPane {
         engine.zoomFactorProperty().addListener(changeListener);
 
         // Resize Handles
-        makeHandle(model, border, javafx.geometry.Pos.TOP_LEFT);
-        makeHandle(model, border, javafx.geometry.Pos.TOP_CENTER);
-        makeHandle(model, border, javafx.geometry.Pos.TOP_RIGHT);
-        makeHandle(model, border, javafx.geometry.Pos.CENTER_LEFT);
-        makeHandle(model, border, javafx.geometry.Pos.CENTER_RIGHT);
-        makeHandle(model, border, javafx.geometry.Pos.BOTTOM_LEFT);
-        makeHandle(model, border, javafx.geometry.Pos.BOTTOM_CENTER);
-        makeHandle(model, border, javafx.geometry.Pos.BOTTOM_RIGHT);
+        makeHandle(model, border, Pos.TOP_LEFT);
+        makeHandle(model, border, Pos.TOP_CENTER);
+        makeHandle(model, border, Pos.TOP_RIGHT);
+        makeHandle(model, border, Pos.CENTER_LEFT);
+        makeHandle(model, border, Pos.CENTER_RIGHT);
+        makeHandle(model, border, Pos.BOTTOM_LEFT);
+        makeHandle(model, border, Pos.BOTTOM_CENTER);
+        makeHandle(model, border, Pos.BOTTOM_RIGHT);
 
         adornerLayer.getChildren().add(selectionAdorner);
     }
 
-    private void makeHandle(com.jasperstudio.model.ElementModel model, javafx.scene.shape.Rectangle border,
-            javafx.geometry.Pos pos) {
+    private void makeHandle(ElementModel model, Rectangle border, Pos pos) {
         double msgSize = 8; // Increased size for better hit target
         Rectangle handle = new Rectangle(msgSize, msgSize);
         handle.setStyle("-fx-fill: white; -fx-stroke: #0096C9; -fx-stroke-width: 1;");
@@ -1198,72 +966,32 @@ public class ReportCanvas extends BorderPane {
         handle.setViewOrder(-1);
 
         // Bind handle position to border
-        handle.xProperty().bind(javafx.beans.binding.Bindings.createDoubleBinding(() -> {
-            switch (pos) {
-                case TOP_LEFT:
-                case CENTER_LEFT:
-                case BOTTOM_LEFT:
-                    return border.getX() - msgSize / 2;
-                case TOP_CENTER:
-                case BOTTOM_CENTER:
-                    return border.getX() + border.getWidth() / 2 - msgSize / 2;
-                case TOP_RIGHT:
-                case CENTER_RIGHT:
-                case BOTTOM_RIGHT:
-                    return border.getX() + border.getWidth() - msgSize / 2;
-                default:
-                    return 0.0;
-            }
+        handle.xProperty().bind(Bindings.createDoubleBinding(() -> switch (pos) {
+            case TOP_LEFT, CENTER_LEFT, BOTTOM_LEFT -> border.getX() - msgSize / 2;
+            case TOP_CENTER, BOTTOM_CENTER -> border.getX() + border.getWidth() / 2 - msgSize / 2;
+            case TOP_RIGHT, CENTER_RIGHT, BOTTOM_RIGHT -> border.getX() + border.getWidth() - msgSize / 2;
+            default -> 0.0;
         }, border.xProperty(), border.widthProperty()));
 
-        handle.yProperty().bind(javafx.beans.binding.Bindings.createDoubleBinding(() -> {
-            switch (pos) {
-                case TOP_LEFT:
-                case TOP_CENTER:
-                case TOP_RIGHT:
-                    return border.getY() - msgSize / 2;
-                case CENTER_LEFT:
-                case CENTER_RIGHT:
-                    return border.getY() + border.getHeight() / 2 - msgSize / 2;
-                case BOTTOM_LEFT:
-                case BOTTOM_CENTER:
-                case BOTTOM_RIGHT:
-                    return border.getY() + border.getHeight() - msgSize / 2;
-                default:
-                    return 0.0;
-            }
+        handle.yProperty().bind(Bindings.createDoubleBinding(() -> switch (pos) {
+            case TOP_LEFT, TOP_CENTER, TOP_RIGHT -> border.getY() - msgSize / 2;
+            case CENTER_LEFT, CENTER_RIGHT -> border.getY() + border.getHeight() / 2 - msgSize / 2;
+            case BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT -> border.getY() + border.getHeight() - msgSize / 2;
+            default -> 0.0;
         }, border.yProperty(), border.heightProperty()));
 
         // Cursor
-        javafx.scene.Cursor cursor;
-        switch (pos) {
-            case TOP_LEFT:
-                cursor = javafx.scene.Cursor.NW_RESIZE;
-                break;
-            case TOP_CENTER:
-                cursor = javafx.scene.Cursor.N_RESIZE;
-                break;
-            case TOP_RIGHT:
-                cursor = javafx.scene.Cursor.NE_RESIZE;
-                break;
-            case CENTER_RIGHT:
-                cursor = javafx.scene.Cursor.E_RESIZE;
-                break;
-            case BOTTOM_RIGHT:
-                cursor = javafx.scene.Cursor.SE_RESIZE;
-                break;
-            case BOTTOM_CENTER:
-                cursor = javafx.scene.Cursor.S_RESIZE;
-                break;
-            case BOTTOM_LEFT:
-                cursor = javafx.scene.Cursor.SW_RESIZE;
-                break;
-            case CENTER_LEFT:
-                cursor = javafx.scene.Cursor.W_RESIZE;
-                break;
-            default:
-                cursor = javafx.scene.Cursor.DEFAULT;
-        }
+        Cursor cursor = switch (pos) {
+            case TOP_LEFT -> Cursor.NW_RESIZE;
+            case TOP_CENTER -> Cursor.N_RESIZE;
+            case TOP_RIGHT -> Cursor.NE_RESIZE;
+            case CENTER_RIGHT -> Cursor.E_RESIZE;
+            case BOTTOM_RIGHT -> Cursor.SE_RESIZE;
+            case BOTTOM_CENTER -> Cursor.S_RESIZE;
+            case BOTTOM_LEFT -> Cursor.SW_RESIZE;
+            case CENTER_LEFT -> Cursor.W_RESIZE;
+            default -> Cursor.DEFAULT;
+        };
         handle.setCursor(cursor);
 
         // Force cursor update on hover
@@ -1271,7 +999,6 @@ public class ReportCanvas extends BorderPane {
 
         handle.setOnMousePressed(e -> {
             e.consume();
-            System.out.println("Handle Pressed: " + pos);
             final double startX = e.getSceneX();
             final double startY = e.getSceneY();
             final double initialX = model.getX();
@@ -1281,7 +1008,6 @@ public class ReportCanvas extends BorderPane {
             final double zoom = engine.zoomFactorProperty().get();
 
             handle.setOnMouseDragged(dragEvent -> {
-                System.out.println("Handle Dragged: " + pos);
                 double deltaX = (dragEvent.getSceneX() - startX) / zoom;
                 double deltaY = (dragEvent.getSceneY() - startY) / zoom;
 
@@ -1331,8 +1057,6 @@ public class ReportCanvas extends BorderPane {
                         break;
                 }
 
-                System.out.println("Resize: " + newX + "," + newY + " " + newW + "x" + newH);
-
                 if (newX != model.getX())
                     model.setX((int) newX);
                 if (newY != model.getY())
@@ -1343,6 +1067,23 @@ public class ReportCanvas extends BorderPane {
                     model.setHeight((int) newH);
 
                 dragEvent.consume();
+            });
+
+            handle.setOnMouseReleased(relEvent -> {
+                int endX = (int) model.getX();
+                int endY = (int) model.getY();
+                int endW = (int) model.getWidth();
+                int endH = (int) model.getHeight();
+
+                if (initialX != endX || initialY != endY || initialW != endW || initialH != endH) {
+                    ResizeElementCommand cmd = new ResizeElementCommand(
+                            model, (int)initialX, (int)initialY, (int)initialW, (int)initialH, endX, endY, endW, endH);
+                    engine.executeCommand(cmd);
+                }
+
+                handle.setOnMouseDragged(null);
+                handle.setOnMouseReleased(null);
+                relEvent.consume();
             });
         });
 

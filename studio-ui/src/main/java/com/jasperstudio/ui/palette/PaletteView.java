@@ -2,12 +2,16 @@ package com.jasperstudio.ui.palette;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Scene;
 import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
 
 /**
  * Tools Palette.
@@ -22,10 +26,14 @@ public class PaletteView extends VBox {
         LINE,
         IMAGE,
         FRAME,
-        BREAK
+        BREAK,
+        SUBREPORT,
+        CHART,
+        CROSSTAB,
+        BARCODE
     }
 
-    @javafx.fxml.FXML
+    @FXML
     private ListView<ToolType> toolList;
 
     public PaletteView() {
@@ -69,6 +77,18 @@ public class PaletteView extends VBox {
                         case BREAK:
                             icon.setIconLiteral("fas-cut");
                             break;
+                        case SUBREPORT:
+                            icon.setIconLiteral("far-file-alt");
+                            break;
+                        case CHART:
+                            icon.setIconLiteral("fas-chart-bar");
+                            break;
+                        case CROSSTAB:
+                            icon.setIconLiteral("fas-table");
+                            break;
+                        case BARCODE:
+                            icon.setIconLiteral("fas-barcode");
+                            break;
                         default:
                             icon.setIconLiteral("fas-question");
                     }
@@ -82,7 +102,7 @@ public class PaletteView extends VBox {
     }
 
     private void loadFXML() {
-        javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("PaletteView.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("PaletteView.fxml"));
         loader.setRoot(this);
         loader.setController(this);
         try {
@@ -105,8 +125,8 @@ public class PaletteView extends VBox {
                 // We can snapshot the cell that originated the event, or just create a text
                 // image.
                 // For simplicity/robustness, we'll create a simple Text node snapshot
-                javafx.scene.text.Text textNode = new javafx.scene.text.Text(selected.name());
-                new javafx.scene.Scene(new javafx.scene.layout.StackPane(textNode)); // simplified formatting
+                Text textNode = new Text(selected.name());
+                new Scene(new javafx.scene.layout.StackPane(textNode)); // simplified formatting
                 db.setDragView(textNode.snapshot(null, null));
 
                 event.consume();

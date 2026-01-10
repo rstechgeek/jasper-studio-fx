@@ -1,8 +1,18 @@
 package com.jasperstudio.ui;
 
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.value.ObservableValue;
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Node;
+import javafx.scene.control.*;
 import javafx.scene.layout.BorderPane;
+import javafx.scene.layout.StackPane;
+import javafx.stage.FileChooser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import java.io.File;
+import java.io.IOException;
 
 /**
  * The main shell of the application.
@@ -14,115 +24,63 @@ public class MainWorkspace extends BorderPane {
 
     private final com.jasperstudio.designer.DesignerEngine designerEngine;
 
-    @javafx.fxml.FXML
-    private javafx.scene.control.SplitPane mainSplit;
-    @javafx.fxml.FXML
-    private javafx.scene.control.SplitPane leftSidebar;
-
-    @javafx.fxml.FXML
-    private javafx.scene.control.TabPane leftUpperTabPane;
-    @javafx.fxml.FXML
-    private javafx.scene.control.TabPane leftLowerTabPane;
-
-    @javafx.fxml.FXML
-    private javafx.scene.control.Tab tabPalette;
-    @javafx.fxml.FXML
-    private javafx.scene.control.Tab tabData;
-    @javafx.fxml.FXML
-    private javafx.scene.control.Tab tabOutline;
-
-    @javafx.fxml.FXML
-    private javafx.scene.layout.StackPane paletteContainer;
-    @javafx.fxml.FXML
-    private javafx.scene.layout.StackPane dataContainer;
-    @javafx.fxml.FXML
-    private javafx.scene.layout.StackPane outlineContainer;
+    @FXML private SplitPane mainSplit;
+    @FXML private SplitPane leftSidebar;
+    @FXML private TabPane leftUpperTabPane;
+    @FXML private TabPane leftLowerTabPane;
+    @FXML private Tab tabPalette;
+    @FXML private Tab tabData;
+    @FXML private Tab tabOutline;
+    @FXML private StackPane paletteContainer;
+    @FXML private StackPane dataContainer;
+    @FXML private StackPane outlineContainer;
 
     // Right Sidebar
-    @javafx.fxml.FXML
-    private javafx.scene.control.SplitPane rightSidebar;
-    @javafx.fxml.FXML
-    private javafx.scene.control.TabPane rightUpperTabPane;
-    @javafx.fxml.FXML
-    private javafx.scene.control.TabPane rightLowerTabPane;
-    @javafx.fxml.FXML
-    private javafx.scene.control.Tab tabProperties;
-    @javafx.fxml.FXML
-    private javafx.scene.control.Tab tabAssistant;
+    @FXML private SplitPane rightSidebar;
+    @FXML private TabPane rightUpperTabPane;
+    @FXML private TabPane rightLowerTabPane;
+    @FXML private Tab tabProperties;
+    @FXML private Tab tabAssistant;
+    @FXML private StackPane propertiesContainer;
+    @FXML private StackPane assistantContainer;
 
-    @javafx.fxml.FXML
-    private javafx.scene.layout.StackPane propertiesContainer;
-    @javafx.fxml.FXML
-    private javafx.scene.layout.StackPane assistantContainer;
+    @FXML private StackPane canvasContainer;
+    @FXML private StackPane logContainer;
 
-    @javafx.fxml.FXML
-    private javafx.scene.layout.StackPane canvasContainer;
-    @javafx.fxml.FXML
-    private javafx.scene.layout.StackPane logContainer;
-
-    @javafx.fxml.FXML
-    private javafx.scene.control.Button btnUndo;
-    @javafx.fxml.FXML
-    private javafx.scene.control.Button btnRedo;
+    @FXML private Button btnUndo;
+    @FXML private Button btnRedo;
 
     // Edit Menu
-    @javafx.fxml.FXML
-    private javafx.scene.control.MenuItem menuUndo;
-    @javafx.fxml.FXML
-    private javafx.scene.control.MenuItem menuRedo;
-    @javafx.fxml.FXML
-    private javafx.scene.control.MenuItem menuCut;
-    @javafx.fxml.FXML
-    private javafx.scene.control.MenuItem menuCopy;
-    @javafx.fxml.FXML
-    private javafx.scene.control.MenuItem menuPaste;
-    @javafx.fxml.FXML
-    private javafx.scene.control.MenuItem menuDelete;
-    @javafx.fxml.FXML
-    private javafx.scene.control.MenuItem menuSelectAll;
+    @FXML private MenuItem menuUndo;
+    @FXML private MenuItem menuRedo;
+    @FXML private MenuItem menuCut;
+    @FXML private MenuItem menuCopy;
+    @FXML private MenuItem menuPaste;
+    @FXML private MenuItem menuDelete;
+    @FXML private MenuItem menuSelectAll;
 
     // Menu Items
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuShowPalette;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuShowData;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuShowOutline;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuShowProperties;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuShowAssistant;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuShowGrid;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuShowRulers;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuSnapToGrid;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuSnapToGuides;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuSnapToGeometry;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuShowSpreadsheetTags;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuShowJSONTags;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuShowCSVTags;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuShowXLSTags;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuHighlightRenderGrid;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuShowPDF508Tags;
-    @javafx.fxml.FXML
-    private javafx.scene.control.CheckMenuItem menuShowErrorsForElements;
+    @FXML private CheckMenuItem menuShowPalette;
+    @FXML private CheckMenuItem menuShowData;
+    @FXML private CheckMenuItem menuShowOutline;
+    @FXML private CheckMenuItem menuShowProperties;
+    @FXML private CheckMenuItem menuShowAssistant;
+    @FXML private CheckMenuItem menuShowGrid;
+    @FXML private CheckMenuItem menuShowRulers;
+    @FXML private CheckMenuItem menuSnapToGrid;
+    @FXML private CheckMenuItem menuSnapToGuides;
+    @FXML private CheckMenuItem menuSnapToGeometry;
+    @FXML private CheckMenuItem menuShowSpreadsheetTags;
+    @FXML private CheckMenuItem menuShowJSONTags;
+    @FXML private CheckMenuItem menuShowCSVTags;
+    @FXML private CheckMenuItem menuShowXLSTags;
+    @FXML private CheckMenuItem menuHighlightRenderGrid;
+    @FXML private CheckMenuItem menuShowPDF508Tags;
+    @FXML private CheckMenuItem menuShowErrorsForElements;
 
-    @javafx.fxml.FXML
-    private javafx.scene.control.RadioMenuItem menuStyleLight;
-    @javafx.fxml.FXML
-    private javafx.scene.control.RadioMenuItem menuStyleDark;
-    @javafx.fxml.FXML
-    private javafx.scene.control.RadioMenuItem menuStyleGlass;
+    @FXML private RadioMenuItem menuStyleLight;
+    @FXML private RadioMenuItem menuStyleDark;
+    @FXML private RadioMenuItem menuStyleGlass;
 
     public MainWorkspace() {
         this.designerEngine = new com.jasperstudio.designer.DesignerEngine();
@@ -134,12 +92,12 @@ public class MainWorkspace extends BorderPane {
     }
 
     private void loadFXML() {
-        javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("MainWorkspace.fxml"));
+        FXMLLoader loader = new FXMLLoader(getClass().getResource("MainWorkspace.fxml"));
         loader.setRoot(this);
         loader.setController(this);
         try {
             loader.load();
-        } catch (java.io.IOException e) {
+        } catch (IOException e) {
             logger.error("Failed to load MainWorkspace.fxml", e);
             throw new RuntimeException("Failed to load MainWorkspace.fxml", e);
         }
@@ -147,149 +105,140 @@ public class MainWorkspace extends BorderPane {
 
     private void initSubViews() {
         // Instantiate and inject sub-views
-        paletteContainer.getChildren().add(new com.jasperstudio.ui.palette.PaletteView());
-        dataContainer.getChildren().add(new com.jasperstudio.ui.datasource.DataSourcePanel());
-        outlineContainer.getChildren().add(new com.jasperstudio.ui.outline.OutlinePanel(designerEngine));
+        addToContainer(paletteContainer, new com.jasperstudio.ui.palette.PaletteView());
+        addToContainer(dataContainer, new com.jasperstudio.ui.datasource.DataSourcePanel());
+        addToContainer(outlineContainer, new com.jasperstudio.ui.outline.OutlinePanel(designerEngine));
 
-        canvasContainer.getChildren().add(new com.jasperstudio.ui.canvas.ReportCanvas(designerEngine));
-        propertiesContainer.getChildren().add(new com.jasperstudio.ui.properties.PropertiesPanel(designerEngine));
-        assistantContainer.getChildren().add(new com.jasperstudio.ui.assistant.AssistantPanel(designerEngine));
+        addToContainer(canvasContainer, new com.jasperstudio.ui.canvas.ReportCanvas(designerEngine));
+        addToContainer(propertiesContainer, new com.jasperstudio.ui.properties.PropertiesPanel(designerEngine));
+        addToContainer(assistantContainer, new com.jasperstudio.ui.assistant.AssistantPanel(designerEngine));
 
-        // Log Panel
-        com.jasperstudio.ui.logging.LogPanel logPanel = new com.jasperstudio.ui.logging.LogPanel(designerEngine);
-        logContainer.getChildren().add(logPanel);
+        addToContainer(logContainer, new com.jasperstudio.ui.logging.LogPanel(designerEngine));
+    }
+
+    private void addToContainer(StackPane container, Node node) {
+        if (container != null) {
+            container.getChildren().add(node);
+        }
     }
 
     private void setupBindings() {
+        // View Options
+        bindBidirectional(menuShowGrid, designerEngine.showGridProperty());
+        bindBidirectional(menuShowRulers, designerEngine.showRulersProperty());
+        bindBidirectional(menuSnapToGrid, designerEngine.snapToGridProperty());
+        bindBidirectional(menuSnapToGuides, designerEngine.snapToGuidesProperty());
+        bindBidirectional(menuSnapToGeometry, designerEngine.snapToGeometryProperty());
+        bindBidirectional(menuShowSpreadsheetTags, designerEngine.showSpreadsheetTagsProperty());
+        bindBidirectional(menuShowJSONTags, designerEngine.showJSONTagsProperty());
+        bindBidirectional(menuShowCSVTags, designerEngine.showCSVTagsProperty());
+        bindBidirectional(menuShowXLSTags, designerEngine.showXLSTagsProperty());
+        bindBidirectional(menuHighlightRenderGrid, designerEngine.highlightRenderGridProperty());
+        bindBidirectional(menuShowPDF508Tags, designerEngine.showPDF508TagsProperty());
+        bindBidirectional(menuShowErrorsForElements, designerEngine.showErrorsForElementsProperty());
 
-        if (menuShowGrid != null) {
-            menuShowGrid.selectedProperty().bindBidirectional(designerEngine.showGridProperty());
-        }
-        if (btnUndo != null) {
-            btnUndo.setOnAction(e -> designerEngine.getHistoryManager().undo());
-            btnUndo.disableProperty().bind(designerEngine.getHistoryManager().canUndoProperty().not());
-        }
-        if (btnRedo != null) {
-            btnRedo.setOnAction(e -> designerEngine.getHistoryManager().redo());
-            btnRedo.disableProperty().bind(designerEngine.getHistoryManager().canRedoProperty().not());
-        }
-        if (menuShowRulers != null) {
-            menuShowRulers.selectedProperty().bindBidirectional(designerEngine.showRulersProperty());
-        }
-        if (menuSnapToGrid != null) {
-            menuSnapToGrid.selectedProperty().bindBidirectional(designerEngine.snapToGridProperty());
-        }
+        // History Actions
+        setupAction(btnUndo, designerEngine.getHistoryManager()::undo, designerEngine.getHistoryManager().canUndoProperty().not());
+        setupAction(btnRedo, designerEngine.getHistoryManager()::redo, designerEngine.getHistoryManager().canRedoProperty().not());
+        setupAction(menuUndo, designerEngine.getHistoryManager()::undo, designerEngine.getHistoryManager().canUndoProperty().not());
+        setupAction(menuRedo, designerEngine.getHistoryManager()::redo, designerEngine.getHistoryManager().canRedoProperty().not());
 
         // Edit Actions
-        if (menuUndo != null) {
-            menuUndo.setOnAction(e -> designerEngine.getHistoryManager().undo());
-            menuUndo.disableProperty().bind(designerEngine.getHistoryManager().canUndoProperty().not());
-        }
-        if (menuRedo != null) {
-            menuRedo.setOnAction(e -> designerEngine.getHistoryManager().redo());
-            menuRedo.disableProperty().bind(designerEngine.getHistoryManager().canRedoProperty().not());
-        }
-        if (menuDelete != null) {
-            menuDelete.setOnAction(e -> designerEngine.deleteSelection());
-        }
-        if (menuSelectAll != null) {
-            menuSelectAll.setOnAction(e -> designerEngine.selectAll());
-        }
-        // Placeholders
-        if (menuCut != null)
-            menuCut.setOnAction(e -> logger.info("Cut not implemented"));
-        if (menuCopy != null)
-            menuCopy.setOnAction(e -> logger.info("Copy not implemented"));
-        if (menuPaste != null)
-            menuPaste.setOnAction(e -> logger.info("Paste not implemented"));
-
-        // View Bindings
-        bindIfExists(menuSnapToGuides, designerEngine.snapToGuidesProperty());
-        bindIfExists(menuSnapToGeometry, designerEngine.snapToGeometryProperty());
-        bindIfExists(menuShowSpreadsheetTags, designerEngine.showSpreadsheetTagsProperty());
-        bindIfExists(menuShowJSONTags, designerEngine.showJSONTagsProperty());
-        bindIfExists(menuShowCSVTags, designerEngine.showCSVTagsProperty());
-        bindIfExists(menuShowXLSTags, designerEngine.showXLSTagsProperty());
-        bindIfExists(menuHighlightRenderGrid, designerEngine.highlightRenderGridProperty());
-        bindIfExists(menuShowPDF508Tags, designerEngine.showPDF508TagsProperty());
-        bindIfExists(menuShowErrorsForElements, designerEngine.showErrorsForElementsProperty());
+        setupAction(menuDelete, designerEngine::deleteSelection);
+        setupAction(menuSelectAll, designerEngine::selectAll);
+        setupAction(menuCut, designerEngine::cut);
+        setupAction(menuCopy, designerEngine::copy);
+        setupAction(menuPaste, designerEngine::paste);
     }
 
-    private void bindIfExists(javafx.scene.control.CheckMenuItem item, javafx.beans.property.BooleanProperty prop) {
-        if (item != null && prop != null) {
-            item.selectedProperty().bindBidirectional(prop);
+    private void bindBidirectional(CheckMenuItem item, BooleanProperty property) {
+        if (item != null && property != null) {
+            item.selectedProperty().bindBidirectional(property);
+        }
+    }
+
+    private void setupAction(ButtonBase button, Runnable action, ObservableValue<Boolean> disableProperty) {
+        if (button != null) {
+            button.setOnAction(e -> action.run());
+            if (disableProperty != null) {
+                button.disableProperty().bind(disableProperty);
+            }
+        }
+    }
+
+    private void setupAction(MenuItem item, Runnable action) {
+        setupAction(item, action, null);
+    }
+
+    private void setupAction(MenuItem item, Runnable action, ObservableValue<Boolean> disableProperty) {
+        if (item != null) {
+            item.setOnAction(e -> action.run());
+            if (disableProperty != null) {
+                item.disableProperty().bind(disableProperty);
+            }
         }
     }
 
     private void setupViewActions() {
-        // Right Sidebar Toggle
-        javafx.beans.value.ChangeListener<Boolean> rightUpdate = (obs, old, val) -> updateRightSidebar();
-        if (menuShowProperties != null)
-            menuShowProperties.selectedProperty().addListener(rightUpdate);
-        if (menuShowAssistant != null)
-            menuShowAssistant.selectedProperty().addListener(rightUpdate);
-
-        // Initial Right Sidebar state
-        updateRightSidebar();
-
-        // Left Sidebar Toggling
-        javafx.beans.value.ChangeListener<Boolean> leftUpdate = (obs, old, val) -> updateLeftSidebar();
-
-        if (menuShowPalette != null)
-            menuShowPalette.selectedProperty().addListener(leftUpdate);
-        if (menuShowData != null)
-            menuShowData.selectedProperty().addListener(leftUpdate);
-        if (menuShowOutline != null)
-            menuShowOutline.selectedProperty().addListener(leftUpdate);
-
-        // Initial Left Sidebar state
-        if (menuShowPalette != null)
+        // Listener for sidebar updates
+        Runnable updateLayout = () -> {
             updateLeftSidebar();
+            updateRightSidebar();
+        };
+
+        // Register listeners
+        registerListener(menuShowPalette, updateLayout);
+        registerListener(menuShowData, updateLayout);
+        registerListener(menuShowOutline, updateLayout);
+        registerListener(menuShowProperties, updateLayout);
+        registerListener(menuShowAssistant, updateLayout);
+
+        // Initial state
+        updateLayout.run();
+    }
+
+    private void registerListener(CheckMenuItem item, Runnable action) {
+        if (item != null) {
+            item.selectedProperty().addListener((obs, old, val) -> action.run());
+        }
     }
 
     private void updateRightSidebar() {
         updateTabPane(rightUpperTabPane, menuShowProperties, tabProperties);
         updateTabPane(rightLowerTabPane, menuShowAssistant, tabAssistant);
-
-        if (rightSidebar != null && rightUpperTabPane != null && rightLowerTabPane != null) {
-            updateSplitPaneItem(rightSidebar, rightUpperTabPane, !rightUpperTabPane.getTabs().isEmpty());
-            updateSplitPaneItem(rightSidebar, rightLowerTabPane, !rightLowerTabPane.getTabs().isEmpty());
-
-            boolean showRight = !rightSidebar.getItems().isEmpty();
-            boolean hasRight = mainSplit.getItems().contains(rightSidebar);
-
-            if (showRight && !hasRight) {
-                mainSplit.getItems().add(rightSidebar);
-                mainSplit.setDividerPositions(0.2, 0.8);
-            } else if (!showRight && hasRight) {
-                mainSplit.getItems().remove(rightSidebar);
-            }
-        }
+        updateSidebarContainer(rightSidebar, rightUpperTabPane, rightLowerTabPane);
     }
 
     private void updateLeftSidebar() {
-        // Upper Tabs
         updateTabPane(leftUpperTabPane, menuShowPalette, tabPalette);
         updateTabPane(leftUpperTabPane, menuShowData, tabData);
-
-        // Lower Tab
         updateTabPane(leftLowerTabPane, menuShowOutline, tabOutline);
+        updateSidebarContainer(leftSidebar, leftUpperTabPane, leftLowerTabPane);
+    }
 
-        // Sidebar Sections
-        if (leftSidebar != null && leftUpperTabPane != null && leftLowerTabPane != null) {
-            updateSplitPaneItem(leftSidebar, leftUpperTabPane, !leftUpperTabPane.getTabs().isEmpty());
-            updateSplitPaneItem(leftSidebar, leftLowerTabPane, !leftLowerTabPane.getTabs().isEmpty());
+    private void updateSidebarContainer(SplitPane sidebar, TabPane... panes) {
+        if (sidebar == null) return;
 
-            // Main Sidebar
-            boolean showLeft = !leftSidebar.getItems().isEmpty();
-            boolean hasLeft = mainSplit.getItems().contains(leftSidebar);
-
-            if (showLeft && !hasLeft) {
-                mainSplit.getItems().add(0, leftSidebar);
-                mainSplit.setDividerPositions(0.2, 0.8);
-            } else if (!showLeft && hasLeft) {
-                mainSplit.getItems().remove(leftSidebar);
+        // Update sidebar children (split items)
+        for (TabPane pane : panes) {
+            if (pane != null) {
+                updateSplitPaneItem(sidebar, pane, !pane.getTabs().isEmpty());
             }
+        }
+
+        // Update Main Split
+        boolean showSidebar = !sidebar.getItems().isEmpty();
+        boolean hasSidebar = mainSplit.getItems().contains(sidebar);
+
+        if (showSidebar && !hasSidebar) {
+            if (sidebar == leftSidebar) {
+                mainSplit.getItems().add(0, leftSidebar);
+            } else {
+                mainSplit.getItems().add(sidebar);
+            }
+            mainSplit.setDividerPositions(0.2, 0.8);
+        } else if (!showSidebar && hasSidebar) {
+            mainSplit.getItems().remove(sidebar);
         }
     }
 
@@ -317,20 +266,10 @@ public class MainWorkspace extends BorderPane {
     }
 
     private void setupThemeActions() {
-        javafx.scene.control.ToggleGroup themeGroup = new javafx.scene.control.ToggleGroup();
-
-        if (menuStyleLight != null) {
-            menuStyleLight.setToggleGroup(themeGroup);
-            menuStyleLight.setOnAction(e -> updateTheme("LIGHT"));
-        }
-        if (menuStyleDark != null) {
-            menuStyleDark.setToggleGroup(themeGroup);
-            menuStyleDark.setOnAction(e -> updateTheme("DARK"));
-        }
-        if (menuStyleGlass != null) {
-            menuStyleGlass.setToggleGroup(themeGroup);
-            menuStyleGlass.setOnAction(e -> updateTheme("GLASS"));
-        }
+        ToggleGroup themeGroup = new ToggleGroup();
+        setupThemeItem(menuStyleLight, "LIGHT", themeGroup);
+        setupThemeItem(menuStyleDark, "DARK", themeGroup);
+        setupThemeItem(menuStyleGlass, "GLASS", themeGroup);
 
         // Wait for scene to apply initial theme
         this.sceneProperty().addListener((obs, old, scene) -> {
@@ -346,8 +285,14 @@ public class MainWorkspace extends BorderPane {
         });
     }
 
-    private void updateTabPane(javafx.scene.control.TabPane pane, javafx.scene.control.CheckMenuItem menu,
-            javafx.scene.control.Tab tab) {
+    private void setupThemeItem(RadioMenuItem item, String theme, ToggleGroup group) {
+        if (item != null) {
+            item.setToggleGroup(group);
+            item.setOnAction(e -> updateTheme(theme));
+        }
+    }
+
+    private void updateTabPane(TabPane pane, CheckMenuItem menu, Tab tab) {
         if (pane == null || menu == null || tab == null)
             return;
         boolean show = menu.isSelected();
@@ -359,7 +304,7 @@ public class MainWorkspace extends BorderPane {
         }
     }
 
-    private void updateSplitPaneItem(javafx.scene.control.SplitPane split, javafx.scene.Node item, boolean show) {
+    private void updateSplitPaneItem(SplitPane split, Node item, boolean show) {
         if (split == null || item == null)
             return;
         boolean has = split.getItems().contains(item);
@@ -370,17 +315,14 @@ public class MainWorkspace extends BorderPane {
         }
     }
 
-    @javafx.fxml.FXML
+    @FXML
     private void onNew() {
         designerEngine.newDesign();
     }
 
-    @javafx.fxml.FXML
+    @FXML
     private void onOpen() {
-        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
-        fileChooser.setTitle("Open Report Design");
-        fileChooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("JRXML Files", "*.jrxml"));
-        java.io.File file = fileChooser.showOpenDialog(getScene().getWindow());
+        File file = showFileChooser("Open Report Design", false);
         if (file != null) {
             try {
                 designerEngine.openDesign(file);
@@ -391,12 +333,9 @@ public class MainWorkspace extends BorderPane {
         }
     }
 
-    @javafx.fxml.FXML
+    @FXML
     private void onSave() {
-        javafx.stage.FileChooser fileChooser = new javafx.stage.FileChooser();
-        fileChooser.setTitle("Save Report Design");
-        fileChooser.getExtensionFilters().add(new javafx.stage.FileChooser.ExtensionFilter("JRXML Files", "*.jrxml"));
-        java.io.File file = fileChooser.showSaveDialog(getScene().getWindow());
+        File file = showFileChooser("Save Report Design", true);
         if (file != null) {
             try {
                 designerEngine.saveDesign(file);
@@ -407,17 +346,28 @@ public class MainWorkspace extends BorderPane {
         }
     }
 
-    @javafx.fxml.FXML
+    private File showFileChooser(String title, boolean save) {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle(title);
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JRXML Files", "*.jrxml"));
+        if (save) {
+            return fileChooser.showSaveDialog(getScene().getWindow());
+        } else {
+            return fileChooser.showOpenDialog(getScene().getWindow());
+        }
+    }
+
+    @FXML
     private void onExit() {
         System.exit(0);
     }
 
-    @javafx.fxml.FXML
+    @FXML
     private void onZoomIn() {
         designerEngine.zoomIn();
     }
 
-    @javafx.fxml.FXML
+    @FXML
     private void onZoomOut() {
         designerEngine.zoomOut();
     }

@@ -28,8 +28,11 @@ public class AssistantPanel extends BorderPane {
     @FXML
     private Button btnSend;
 
+    private final com.jasperstudio.ai.AiService aiService;
+
     public AssistantPanel(DesignerEngine engine) {
         this.engine = engine;
+        this.aiService = new com.jasperstudio.ai.MockAiService();
         loadFXML();
         initUI();
     }
@@ -76,20 +79,23 @@ public class AssistantPanel extends BorderPane {
         messages.add(new ChatMessage("User", text, false));
         inputField.clear();
 
-        // AI Response Mock
+        // AI Response
+        // Run on background thread if blocking (Mock is fast so UI thread is fine for
+        // now)
         processRequest(text);
     }
 
     private void processRequest(String text) {
-        // Here we would call an AI Service
-        // For now, simple context-aware mock
-        String response = "I see (" + text + "). I can help with that context later.";
-
-        if (engine.getDesign() != null) {
-            response += "\n\nCurrent Design: " + engine.getDesign().getDesign().getName();
-            response += "\nZoom: " + engine.zoomFactorProperty().get();
+        String response;
+        if (text.toLowerCase().contains("analyze")) {
+            if (engine.getDesign() != null) {
+                aiService.analyzeDesign(engine.getDesign());
+                response = "I have analyzed your design: " + engine.getDesign().getDesign().getName() + ". Looks good!";
+            } else {
+                response = "There is no design open to analyze.";
+            }
         } else {
-            response += "\nNo report is currently open.";
+            response = aiService.ask(text);
         }
 
         messages.add(new ChatMessage("Assistant", response, true));

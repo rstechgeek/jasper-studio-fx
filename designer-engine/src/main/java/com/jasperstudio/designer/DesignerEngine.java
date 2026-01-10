@@ -19,6 +19,8 @@ public class DesignerEngine {
     private final javafx.collections.ObservableList<com.jasperstudio.descriptor.LogEntry> errorLogs = javafx.collections.FXCollections
             .observableArrayList();
 
+    private String internalClipboard = null;
+
     private final ObjectProperty<JasperDesignModel> currentDesign = new SimpleObjectProperty<>();
     private final DoubleProperty zoomFactor = new SimpleDoubleProperty(1.0);
     private final javafx.beans.property.IntegerProperty gridSize = new javafx.beans.property.SimpleIntegerProperty(10);
@@ -456,15 +458,34 @@ public class DesignerEngine {
                 brk.setWidth(100);
                 brk.setHeight(5);
                 jrElement = brk;
-            } else if (typeString != null && typeString.startsWith("FIELD:")) {
-                String fieldName = typeString.substring("FIELD:".length());
-                var tf = new net.sf.jasperreports.engine.design.JRDesignTextField();
-                tf.setWidth(150);
-                tf.setHeight(30);
-                var expr = new net.sf.jasperreports.engine.design.JRDesignExpression();
-                expr.setText("$F{" + fieldName + "}");
-                tf.setExpression(expr);
-                jrElement = tf;
+            } else if ("SUBREPORT".equals(typeString)) {
+                var sub = new net.sf.jasperreports.engine.design.JRDesignSubreport(null);
+                sub.setExpression(
+                        new net.sf.jasperreports.engine.design.JRDesignExpression("\"repo:subreport.jrxml\""));
+                sub.setWidth(200);
+                sub.setHeight(100);
+                jrElement = sub;
+            } else if ("CHART".equals(typeString)) {
+                // Placeholder Chart (Pie) - Simplified for compilation
+                var chart = new net.sf.jasperreports.engine.design.JRDesignRectangle();
+                chart.getPropertiesMap().setProperty("com.jasperstudio.component.type", "CHART");
+                chart.setWidth(200);
+                chart.setHeight(150);
+                jrElement = chart;
+            } else if ("CROSSTAB".equals(typeString)) {
+                var crosstab = new net.sf.jasperreports.crosstabs.design.JRDesignCrosstab(null);
+                crosstab.setWidth(200);
+                crosstab.setHeight(100);
+                jrElement = crosstab;
+            } else if ("BARCODE".equals(typeString)) {
+                // Placeholder Barcode (Component Element wrapper would be better but complex
+                // for now, use Image placeholder)
+                var img = new net.sf.jasperreports.engine.design.JRDesignImage(null);
+                img.setWidth(100);
+                img.setHeight(50);
+                // Mark as barcode via property? For now just visual placeholder
+                img.getPropertiesMap().setProperty("com.jasperstudio.component.type", "BARCODE");
+                jrElement = img;
             }
 
             if (jrElement != null) {
@@ -540,15 +561,29 @@ public class DesignerEngine {
             brk.setWidth(100);
             brk.setHeight(5);
             jrElement = brk;
-        } else if (typeString != null && typeString.startsWith("FIELD:")) {
-            String fieldName = typeString.substring("FIELD:".length());
-            var tf = new net.sf.jasperreports.engine.design.JRDesignTextField();
-            tf.setWidth(150);
-            tf.setHeight(30);
-            var expr = new net.sf.jasperreports.engine.design.JRDesignExpression();
-            expr.setText("$F{" + fieldName + "}");
-            tf.setExpression(expr);
-            jrElement = tf;
+        } else if ("SUBREPORT".equals(typeString)) {
+            var sub = new net.sf.jasperreports.engine.design.JRDesignSubreport(null);
+            sub.setExpression(new net.sf.jasperreports.engine.design.JRDesignExpression("\"repo:subreport.jrxml\""));
+            sub.setWidth(200);
+            sub.setHeight(100);
+            jrElement = sub;
+        } else if ("CHART".equals(typeString)) {
+            var chart = new net.sf.jasperreports.engine.design.JRDesignRectangle();
+            chart.getPropertiesMap().setProperty("com.jasperstudio.component.type", "CHART");
+            chart.setWidth(200);
+            chart.setHeight(150);
+            jrElement = chart;
+        } else if ("CROSSTAB".equals(typeString)) {
+            var crosstab = new net.sf.jasperreports.crosstabs.design.JRDesignCrosstab(null);
+            crosstab.setWidth(200);
+            crosstab.setHeight(100);
+            jrElement = crosstab;
+        } else if ("BARCODE".equals(typeString)) {
+            var img = new net.sf.jasperreports.engine.design.JRDesignImage(null);
+            img.setWidth(100);
+            img.setHeight(50);
+            img.getPropertiesMap().setProperty("com.jasperstudio.component.type", "BARCODE");
+            jrElement = img;
         }
 
         if (jrElement != null) {
@@ -741,5 +776,82 @@ public class DesignerEngine {
 
     public void selectAll() {
         logger.info("Select All triggered (Multi-selection not yet supported)");
+    }
+
+    public void copy() {
+        com.jasperstudio.model.ElementModel selected = getSelectedElement();
+        if (selected == null)
+            return;
+
+        try {
+            this.internalClipboard = jrxmlService.serializeElement(selected.getElement());
+            logger.info("Copied element to clipboard");
+        } catch (Exception e) {
+            logError("Failed to copy element", e);
+        }
+    }
+
+    public void cut() {
+        copy();
+        deleteSelection();
+    }
+
+    public void paste() {
+        if (this.internalClipboard == null)
+            return;
+
+        try {
+            net.sf.jasperreports.engine.design.JRDesignElement newElement = jrxmlService
+                    .deserializeElement(this.internalClipboard);
+            if (newElement != null) {
+                // Offset
+                newElement.setX(newElement.getX() + 10);
+                newElement.setY(newElement.getY() + 10);
+                newElement.setUUID(java.util.UUID.randomUUID());
+
+                // Add to current band or parent of original selection?
+                // Logic: If selection exists, try to add to its parent. Else add to Detail or
+                // Title.
+                // Simple logic: Add to Detail if exists, else Title.
+                // Better: Get currently selected band? We don't track "selected band"
+                // explicitly well yet,
+                // but we can default to Title or find the band of the currently selected
+                // element.
+
+                com.jasperstudio.model.BandModel targetBand = null;
+                com.jasperstudio.model.ElementModel selected = getSelectedElement();
+
+                if (selected != null) {
+                    // Find generic parent band of selection
+                    for (com.jasperstudio.model.BandModel b : getDesign().getBands()) {
+                        if (b.getElements().contains(selected)) {
+                            targetBand = b;
+                            break;
+                        }
+                    }
+                }
+
+                if (targetBand == null) {
+                    // Default to Detail or Title
+                    if (getDesign().getBand("Detail") != null)
+                        targetBand = getDesign().getBand("Detail");
+                    else
+                        targetBand = getDesign().getBand("Title");
+                }
+
+                if (targetBand != null) {
+                    com.jasperstudio.model.ElementModel model = new com.jasperstudio.model.ElementModel(newElement);
+                    targetBand.addElement(model);
+                    // Ensure band height accommodates
+                    if (newElement.getY() + newElement.getHeight() > targetBand.getHeight()) {
+                        targetBand.setHeight(newElement.getY() + newElement.getHeight());
+                    }
+                    setSelection(model);
+                    logger.info("Pasted element");
+                }
+            }
+        } catch (Exception e) {
+            logError("Failed to paste element", e);
+        }
     }
 }
