@@ -2,72 +2,74 @@ package com.jasperstudio.ui.logging;
 
 import com.jasperstudio.descriptor.LogEntry;
 import com.jasperstudio.designer.DesignerEngine;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
-import javafx.scene.control.TitledPane;
 import javafx.scene.layout.BorderPane;
-import javafx.scene.layout.VBox;
 
 import java.time.format.DateTimeFormatter;
 
-public class LogPanel extends TitledPane {
+public class LogPanel extends BorderPane {
 
-    private final DesignerEngine engine;
-    private final TableView<LogEntry> logTable;
-    private final TextArea detailsArea;
+    private DesignerEngine engine;
+    private final TextArea errorLogArea;
+    private javafx.collections.ListChangeListener<LogEntry> logListener;
 
     public LogPanel(DesignerEngine engine) {
-        this.engine = engine;
-        this.setText("Error Log");
-        this.setCollapsible(true);
-        this.setExpanded(true);
+        // Header
+        javafx.scene.control.Label header = new javafx.scene.control.Label("Problems");
+        header.getStyleClass().add("sidebar-header");
+        header.setMaxWidth(Double.MAX_VALUE);
+        this.setTop(header);
 
-        BorderPane content = new BorderPane();
+        errorLogArea = new TextArea();
+        errorLogArea.setEditable(false);
+        errorLogArea.setStyle("-fx-font-family: 'Courier New', monospace; -fx-font-size: 11px;");
 
-        logTable = new TableView<>();
-        logTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+        this.setCenter(errorLogArea);
 
-        TableColumn<LogEntry, String> timeCol = new TableColumn<>("Time");
-        timeCol.setCellValueFactory(data -> new SimpleStringProperty(
-                data.getValue().getTimestamp().format(DateTimeFormatter.ofPattern("HH:mm:ss"))));
-        timeCol.setPrefWidth(80);
-        timeCol.setMaxWidth(80);
-        timeCol.setMinWidth(80);
-
-        TableColumn<LogEntry, String> msgCol = new TableColumn<>("Message");
-        msgCol.setCellValueFactory(data -> new SimpleStringProperty(data.getValue().getMessage()));
-
-        logTable.getColumns().addAll(timeCol, msgCol);
-        logTable.setItems(engine.getErrorLogs());
-
-        detailsArea = new TextArea();
-        detailsArea.setEditable(false);
-        detailsArea.setPrefHeight(100);
-
-        logTable.getSelectionModel().selectedItemProperty().addListener((obs, old, entry) -> {
-            if (entry != null) {
-                detailsArea.setText(entry.getDescription());
-            } else {
-                detailsArea.clear();
-            }
-        });
-
-        VBox vbox = new VBox(logTable, detailsArea);
-        content.setCenter(vbox);
-
-        this.setContent(content);
-
-        // Auto-expand if new error arrives
-        engine.getErrorLogs().addListener((javafx.collections.ListChangeListener<LogEntry>) c -> {
+        this.logListener = c -> {
             while (c.next()) {
                 if (c.wasAdded()) {
-                    setExpanded(true);
-                    logTable.scrollTo(0);
-                    logTable.getSelectionModel().select(0);
+                    for (LogEntry entry : c.getAddedSubList()) {
+                        appendLog(entry);
+                    }
+                    // Auto-scroll logic if needed, but TextArea does it somewhat.
+                    // To force scroll to bottom:
+                    errorLogArea.selectPositionCaret(errorLogArea.getLength());
+                    errorLogArea.deselect();
                 }
             }
-        });
+        };
+
+        setDesignerEngine(engine);
+    }
+
+    public void setDesignerEngine(DesignerEngine newEngine) {
+        if (this.engine != null) {
+            this.engine.getErrorLogs().removeListener(logListener);
+        }
+
+        this.engine = newEngine;
+        errorLogArea.clear();
+
+        if (this.engine != null) {
+            // Initial Population
+            for (LogEntry entry : this.engine.getErrorLogs()) {
+                appendLog(entry);
+            }
+            // Listen for new errors
+            this.engine.getErrorLogs().addListener(logListener);
+        }
+    }
+
+    private void appendLog(LogEntry entry) {
+        String timestamp = entry.getTimestamp().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
+        StringBuilder sb = new StringBuilder();
+        sb.append("[").append(timestamp).append("] ").append(entry.getMessage()).append("\n");
+        if (entry.getDescription() != null && !entry.getDescription().isEmpty()) {
+            sb.append(entry.getDescription()).append("\n");
+        }
+        sb.append("--------------------------------------------------\n");
+
+        errorLogArea.appendText(sb.toString());
     }
 }

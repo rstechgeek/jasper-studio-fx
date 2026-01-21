@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
@@ -9,16 +10,19 @@
 <?import javafx.scene.control.Tab?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.control.ToolBar?>
+<?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.control.CheckMenuItem?>
 <?import javafx.scene.control.RadioMenuItem?>
-<?import javafx.scene.control.Tooltip?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.SVGPath?>
 
-<fx:root type="BorderPane" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
+<fx:root type="BorderPane" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" stylesheets="@MainWorkspace.css">
     <top>
         <VBox>
              <MenuBar>
@@ -26,6 +30,8 @@
                      <MenuItem text="New" onAction="#onNew" accelerator="Shortcut+N"/>
                      <MenuItem text="Open..." onAction="#onOpen" accelerator="Shortcut+O"/>
                      <MenuItem text="Save..." onAction="#onSave" accelerator="Shortcut+S"/>
+                     <MenuItem text="Close" onAction="#onClose" accelerator="Shortcut+W"/>
+                     <MenuItem text="Close All" onAction="#onCloseAll" accelerator="Shortcut+Shift+W"/>
                      <SeparatorMenuItem/>
                      <MenuItem text="Exit" onAction="#onExit"/>
                  </Menu>
@@ -65,11 +71,7 @@
                      <CheckMenuItem fx:id="menuShowPDF508Tags" text="Show PDF508 Tags"/>
                      <CheckMenuItem fx:id="menuShowErrorsForElements" text="Show Errors For Elements"/>
                      <SeparatorMenuItem/>
-                     <CheckMenuItem fx:id="menuShowPalette" text="Palette" selected="true"/>
-                     <CheckMenuItem fx:id="menuShowData" text="Data Source" selected="true"/>
-                     <CheckMenuItem fx:id="menuShowOutline" text="Outline" selected="true"/>
-                     <CheckMenuItem fx:id="menuShowProperties" text="Properties" selected="true"/>
-                     <CheckMenuItem fx:id="menuShowAssistant" text="AI Assistant" selected="true"/>
+                     <!-- Panels toggled via Activity Bar now -->
                  </Menu>
                  <Menu text="Style">
                      <RadioMenuItem fx:id="menuStyleLight" text="Light Theme" selected="true"/>
@@ -77,65 +79,102 @@
                      <RadioMenuItem fx:id="menuStyleGlass" text="Clear Glass UI"/>
                  </Menu>
              </MenuBar>
-             <ToolBar>
-                 <javafx.scene.control.Button fx:id="btnUndo">
-                     <tooltip><Tooltip text="Undo"/></tooltip>
-                     <graphic>
-                         <SVGPath content="M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z" fill="#555555" scaleX="0.8" scaleY="0.8"/>
-                     </graphic>
-                 </javafx.scene.control.Button>
-                 <javafx.scene.control.Button fx:id="btnRedo">
-                     <tooltip><Tooltip text="Redo"/></tooltip>
-                     <graphic>
-                         <SVGPath content="M18.4 10.6C16.55 9 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z" fill="#555555" scaleX="0.8" scaleY="0.8"/>
-                     </graphic>
-                 </javafx.scene.control.Button>
-             </ToolBar>
+
         </VBox>
     </top>
+    
+    <left>
+        <!-- Activity Bar -->
+        <VBox spacing="10" styleClass="activity-bar" prefWidth="50" alignment="TOP_CENTER" style="-fx-background-color: #f0f0f0; -fx-padding: 10 5 10 5; -fx-border-color: #ddd; -fx-border-width: 0 1 0 0;">
+
+            
+            <ToggleButton fx:id="btnActivityPalette" contentDisplay="GRAPHIC_ONLY" selected="true" styleClass="activity-button">
+                 <tooltip><Tooltip text="Palette"/></tooltip>
+                 <graphic>
+                     <!-- Palette Icon (Grid/List) -->
+                     <SVGPath content="M4 8h4V4H4v4zm6 12h4v-4h-4v4zm-6 0h4v-4H4v4zm0-6h4v-4H4v4zm6 0h4v-4h-4v4zm6-10v4h4V4h-4zm-6 4h4V4h-4v4zm6 6h4v-4h-4v4zm0 6h4v-4h-4v4z" styleClass="activity-icon"/>
+                 </graphic>
+            </ToggleButton>
+
+            <ToggleButton fx:id="btnActivityOutline" contentDisplay="GRAPHIC_ONLY" styleClass="activity-button">
+                 <tooltip><Tooltip text="Outline"/></tooltip>
+                 <graphic>
+                     <!-- Outline Icon (List structure) -->
+                     <SVGPath content="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z" styleClass="activity-icon"/>
+                 </graphic>
+            </ToggleButton>
+
+            <ToggleButton fx:id="btnActivityData" contentDisplay="GRAPHIC_ONLY" styleClass="activity-button">
+                 <tooltip><Tooltip text="Data Sources"/></tooltip>
+                 <graphic>
+                     <!-- Database Icon -->
+                     <SVGPath content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c1.66 0 3 1.34 3 3s-1.34 3-3 3-3-1.34-3-3 1.34-3 3-3zm0 14.2c-2.5 0-4.71-1.28-6-3.22.03-1.99 4-3.08 6-3.08 1.99 0 5.97 1.09 6 3.08-1.29 1.94-3.5 3.22-6 3.22z" styleClass="activity-icon"/>
+                 </graphic>
+            </ToggleButton>
+            
+            <!-- Spacer -->
+            <Region VBox.vgrow="ALWAYS" />
+            
+             <ToggleButton fx:id="btnActivityProblems" contentDisplay="GRAPHIC_ONLY" styleClass="activity-button">
+                 <tooltip><Tooltip text="Problems"/></tooltip>
+                 <graphic>
+                     <SVGPath content="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" styleClass="activity-icon"/>
+                 </graphic>
+            </ToggleButton>
+        </VBox>
+    </left>
+    
+    <right>
+        <!-- Right Activity Bar -->
+         <VBox spacing="10" styleClass="activity-bar" prefWidth="50" alignment="TOP_CENTER" style="-fx-background-color: #f0f0f0; -fx-padding: 10 5 10 5; -fx-border-color: #ddd; -fx-border-width: 0 0 0 1;">
+
+            
+             <ToggleButton fx:id="btnActivityProperties" contentDisplay="GRAPHIC_ONLY" selected="true" styleClass="activity-button">
+                 <tooltip><Tooltip text="Properties"/></tooltip>
+                 <graphic>
+                     <SVGPath content="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" styleClass="activity-icon"/>
+                 </graphic>
+            </ToggleButton>
+            
+             <ToggleButton fx:id="btnActivityAssistant" contentDisplay="GRAPHIC_ONLY" styleClass="activity-button">
+                 <tooltip><Tooltip text="AI Assistant"/></tooltip>
+                 <graphic>
+                     <SVGPath content="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z" styleClass="activity-icon"/>
+                 </graphic>
+            </ToggleButton>
+         </VBox>
+    </right>
+    
     <center>
-        <SplitPane fx:id="mainSplit" dividerPositions="0.2, 0.8">
-             <!-- Left Sidebar -->
-             <SplitPane fx:id="leftSidebar" orientation="VERTICAL" dividerPositions="0.6" minWidth="220">
-                 <TabPane fx:id="leftUpperTabPane" tabClosingPolicy="UNAVAILABLE">
-                     <Tab fx:id="tabPalette" text="Palette">
-                         <StackPane fx:id="paletteContainer" style="-fx-background-color: #f4f4f4;"/>
-                     </Tab>
-                     <Tab fx:id="tabData" text="Data">
-                         <StackPane fx:id="dataContainer"/>
-                     </Tab>
-                 </TabPane>
-                 <TabPane fx:id="leftLowerTabPane" tabClosingPolicy="UNAVAILABLE">
-                     <Tab fx:id="tabOutline" text="Outline">
-                         <StackPane fx:id="outlineContainer"/>
-                     </Tab>
-                 </TabPane>
-             </SplitPane>
-             
-             <!-- Center Canvas Area -->
-             <SplitPane orientation="VERTICAL" dividerPositions="0.8">
-                 <StackPane fx:id="canvasContainer" />
-                 <StackPane fx:id="logContainer" />
-             </SplitPane>
-             
-             <!-- Right Sidebar -->
-             <SplitPane fx:id="rightSidebar" orientation="VERTICAL" dividerPositions="0.6" minWidth="250">
-                 <TabPane fx:id="rightUpperTabPane" tabClosingPolicy="UNAVAILABLE">
-                     <Tab fx:id="tabProperties" text="Properties">
-                          <StackPane fx:id="propertiesContainer" />
-                     </Tab>
-                 </TabPane>
-                 <TabPane fx:id="rightLowerTabPane" tabClosingPolicy="UNAVAILABLE">
-                     <Tab fx:id="tabAssistant" text="AI Assistant">
-                          <StackPane fx:id="assistantContainer" />
-                     </Tab>
-                 </TabPane>
-             </SplitPane>
+        <SplitPane fx:id="mainSplit" orientation="VERTICAL" dividerPositions="0.8">
+            <items>
+                 <SplitPane fx:id="centerSplit" dividerPositions="0.2, 0.8">
+                      <!-- Left Sidebar Content -->
+                      <SplitPane fx:id="leftSidebarContainer" orientation="VERTICAL" minWidth="200">
+                          <!-- Content injected by controller based on selection -->
+                      </SplitPane>
+                      
+                      <!-- Center Canvas -->
+                      <StackPane fx:id="canvasContainer" />
+                      
+                      <!-- Right Sidebar Content -->
+                      <SplitPane fx:id="rightSidebarContainer" orientation="VERTICAL" minWidth="250">
+                                <StackPane fx:id="propertiesContainer" />
+                                <StackPane fx:id="assistantContainer" visible="false"/> <!-- Visible managed by controller logic now -->
+                      </SplitPane>
+                 </SplitPane>
+                 
+                 <!-- Bottom Content -->
+                 <StackPane fx:id="bottomContainer">
+                      <StackPane fx:id="logContainer" />
+                 </StackPane>
+            </items>
         </SplitPane>
     </center>
+    
     <bottom>
-        <StackPane prefHeight="30" style="-fx-background-color: #333;">
-            <Label text="AI Assistant Ready" style="-fx-text-fill: white;" />
+        <StackPane prefHeight="25" style="-fx-background-color: #333; -fx-padding: 2;">
+            <Label text="Ready" style="-fx-text-fill: #aaa; -fx-font-size: 11px;" />
         </StackPane>
     </bottom>
 </fx:root>

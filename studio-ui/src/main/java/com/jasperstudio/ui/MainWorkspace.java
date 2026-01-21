@@ -22,73 +22,120 @@ public class MainWorkspace extends BorderPane {
 
     private static final Logger logger = LoggerFactory.getLogger(MainWorkspace.class);
 
-    private final com.jasperstudio.designer.DesignerEngine designerEngine;
+    private com.jasperstudio.designer.DesignerEngine currentEngine;
 
-    @FXML private SplitPane mainSplit;
-    @FXML private SplitPane leftSidebar;
-    @FXML private TabPane leftUpperTabPane;
-    @FXML private TabPane leftLowerTabPane;
-    @FXML private Tab tabPalette;
-    @FXML private Tab tabData;
-    @FXML private Tab tabOutline;
-    @FXML private StackPane paletteContainer;
-    @FXML private StackPane dataContainer;
-    @FXML private StackPane outlineContainer;
+    // Layout Containers
+    @FXML
+    private SplitPane mainSplit; // Vertical: Center(Split) | Bottom
+    @FXML
+    private SplitPane centerSplit; // Horizontal: Left | Canvas | Right
+    @FXML
+    private SplitPane leftSidebarContainer; // Holds Palette/Outline/Data
 
-    // Right Sidebar
-    @FXML private SplitPane rightSidebar;
-    @FXML private TabPane rightUpperTabPane;
-    @FXML private TabPane rightLowerTabPane;
-    @FXML private Tab tabProperties;
-    @FXML private Tab tabAssistant;
-    @FXML private StackPane propertiesContainer;
-    @FXML private StackPane assistantContainer;
+    @FXML
+    private StackPane canvasContainer;
+    @FXML
+    private SplitPane rightSidebarContainer; // Holds Propeties/Assistant
 
-    @FXML private StackPane canvasContainer;
-    @FXML private StackPane logContainer;
+    @FXML
+    private StackPane bottomContainer; // Holds Problems/Terminal
 
-    @FXML private Button btnUndo;
-    @FXML private Button btnRedo;
+    // Activity Bar Buttons
+    @FXML
+    private ToggleButton btnActivityPalette;
+    @FXML
+    private ToggleButton btnActivityOutline;
+    @FXML
+    private ToggleButton btnActivityData;
+
+    @FXML
+    private ToggleButton btnActivityProblems;
+    @FXML
+    private ToggleButton btnActivityProperties;
+    @FXML
+    private ToggleButton btnActivityAssistant;
+
+    // Content Panels (initialized in code, attached to containers)
+    private StackPane paletteContainer;
+    private StackPane dataContainer;
+    private StackPane outlineContainer;
+
+    @FXML
+    private StackPane propertiesContainer;
+    @FXML
+    private StackPane assistantContainer;
+    @FXML
+    private StackPane logContainer;
 
     // Edit Menu
-    @FXML private MenuItem menuUndo;
-    @FXML private MenuItem menuRedo;
-    @FXML private MenuItem menuCut;
-    @FXML private MenuItem menuCopy;
-    @FXML private MenuItem menuPaste;
-    @FXML private MenuItem menuDelete;
-    @FXML private MenuItem menuSelectAll;
+    @FXML
+    private MenuItem menuUndo;
+    @FXML
+    private MenuItem menuRedo;
+    @FXML
+    private MenuItem menuCut;
+    @FXML
+    private MenuItem menuCopy;
+    @FXML
+    private MenuItem menuPaste;
+    @FXML
+    private MenuItem menuDelete;
+    @FXML
+    private MenuItem menuSelectAll;
 
-    // Menu Items
-    @FXML private CheckMenuItem menuShowPalette;
-    @FXML private CheckMenuItem menuShowData;
-    @FXML private CheckMenuItem menuShowOutline;
-    @FXML private CheckMenuItem menuShowProperties;
-    @FXML private CheckMenuItem menuShowAssistant;
-    @FXML private CheckMenuItem menuShowGrid;
-    @FXML private CheckMenuItem menuShowRulers;
-    @FXML private CheckMenuItem menuSnapToGrid;
-    @FXML private CheckMenuItem menuSnapToGuides;
-    @FXML private CheckMenuItem menuSnapToGeometry;
-    @FXML private CheckMenuItem menuShowSpreadsheetTags;
-    @FXML private CheckMenuItem menuShowJSONTags;
-    @FXML private CheckMenuItem menuShowCSVTags;
-    @FXML private CheckMenuItem menuShowXLSTags;
-    @FXML private CheckMenuItem menuHighlightRenderGrid;
-    @FXML private CheckMenuItem menuShowPDF508Tags;
-    @FXML private CheckMenuItem menuShowErrorsForElements;
+    // View Menu Items
+    @FXML
+    private CheckMenuItem menuShowGrid;
+    @FXML
+    private CheckMenuItem menuShowRulers;
+    @FXML
+    private CheckMenuItem menuSnapToGrid;
+    @FXML
+    private CheckMenuItem menuSnapToGuides;
+    @FXML
+    private CheckMenuItem menuSnapToGeometry;
+    @FXML
+    private CheckMenuItem menuShowSpreadsheetTags;
+    @FXML
+    private CheckMenuItem menuShowJSONTags;
+    @FXML
+    private CheckMenuItem menuShowCSVTags;
+    @FXML
+    private CheckMenuItem menuShowXLSTags;
+    @FXML
+    private CheckMenuItem menuHighlightRenderGrid;
+    @FXML
+    private CheckMenuItem menuShowPDF508Tags;
+    @FXML
+    private CheckMenuItem menuShowErrorsForElements;
 
-    @FXML private RadioMenuItem menuStyleLight;
-    @FXML private RadioMenuItem menuStyleDark;
-    @FXML private RadioMenuItem menuStyleGlass;
+    @FXML
+    private RadioMenuItem menuStyleLight;
+    @FXML
+    private RadioMenuItem menuStyleDark;
+    @FXML
+    private RadioMenuItem menuStyleGlass;
+
+    // Side Panel Views
+    private com.jasperstudio.ui.palette.PaletteView paletteView;
+    private com.jasperstudio.ui.datasource.DataSourcePanel dataSourcePanel;
+    private com.jasperstudio.ui.outline.OutlinePanel outlinePanel;
+    private com.jasperstudio.ui.properties.PropertiesPanel propertiesPanel;
+    private com.jasperstudio.ui.assistant.AssistantPanel assistantPanel;
+    private com.jasperstudio.ui.logging.LogPanel logPanel;
+
+    private TabPane editorTabPane;
 
     public MainWorkspace() {
-        this.designerEngine = new com.jasperstudio.designer.DesignerEngine();
         loadFXML();
-        initSubViews();
+        initSubViews(); // initialize panels content
         setupBindings();
-        setupViewActions();
-        setupThemeActions(); // Added call
+        setupThemeActions();
+        setupActivityBar();
+
+        // Initial Empty Tab or New Design?
+        // Let's create one initial tab
+        onNew();
     }
 
     private void loadFXML() {
@@ -104,16 +151,52 @@ public class MainWorkspace extends BorderPane {
     }
 
     private void initSubViews() {
-        // Instantiate and inject sub-views
-        addToContainer(paletteContainer, new com.jasperstudio.ui.palette.PaletteView());
-        addToContainer(dataContainer, new com.jasperstudio.ui.datasource.DataSourcePanel());
-        addToContainer(outlineContainer, new com.jasperstudio.ui.outline.OutlinePanel(designerEngine));
+        // Create containers for left panels
+        paletteContainer = new StackPane();
+        dataContainer = new StackPane();
+        outlineContainer = new StackPane();
 
-        addToContainer(canvasContainer, new com.jasperstudio.ui.canvas.ReportCanvas(designerEngine));
-        addToContainer(propertiesContainer, new com.jasperstudio.ui.properties.PropertiesPanel(designerEngine));
-        addToContainer(assistantContainer, new com.jasperstudio.ui.assistant.AssistantPanel(designerEngine));
+        // Instantiate Side Views
+        paletteView = new com.jasperstudio.ui.palette.PaletteView();
+        dataSourcePanel = new com.jasperstudio.ui.datasource.DataSourcePanel();
+        // Outline, Properties, Assistant, Log need an engine. We start with null or
+        // handle it.
+        // We'll pass null initially or create them and set engine later.
+        // NOTE: The panels expect an engine in constructor currently, or I need to
+        // modify them to accept null?
+        // My previous refactors KEPT the constructor argument but I can pass null if I
+        // verified they handle it.
+        // Let's pass a dummy or null. OutlinePanel uses setDesignerEngine in
+        // constructor.
+        // If I pass null, it should be fine as I added null checks.
 
-        addToContainer(logContainer, new com.jasperstudio.ui.logging.LogPanel(designerEngine));
+        outlinePanel = new com.jasperstudio.ui.outline.OutlinePanel(null);
+        propertiesPanel = new com.jasperstudio.ui.properties.PropertiesPanel(null);
+        assistantPanel = new com.jasperstudio.ui.assistant.AssistantPanel(null);
+        logPanel = new com.jasperstudio.ui.logging.LogPanel(null);
+
+        addToContainer(paletteContainer, paletteView);
+        addToContainer(dataContainer, dataSourcePanel);
+        addToContainer(outlineContainer, outlinePanel);
+
+        // TabPane for Canvas
+        editorTabPane = new TabPane();
+        editorTabPane.setTabClosingPolicy(TabPane.TabClosingPolicy.ALL_TABS);
+        addToContainer(canvasContainer, editorTabPane);
+
+        // Tab Selection Listener
+        editorTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+            if (newTab instanceof EditorTab) {
+                updateCurrentEngine(((EditorTab) newTab).getEngine());
+            } else {
+                updateCurrentEngine(null);
+            }
+        });
+
+        addToContainer(propertiesContainer, propertiesPanel);
+        addToContainer(assistantContainer, assistantPanel);
+
+        addToContainer(logContainer, logPanel);
     }
 
     private void addToContainer(StackPane container, Node node) {
@@ -123,46 +206,200 @@ public class MainWorkspace extends BorderPane {
     }
 
     private void setupBindings() {
-        // View Options
-        bindBidirectional(menuShowGrid, designerEngine.showGridProperty());
-        bindBidirectional(menuShowRulers, designerEngine.showRulersProperty());
-        bindBidirectional(menuSnapToGrid, designerEngine.snapToGridProperty());
-        bindBidirectional(menuSnapToGuides, designerEngine.snapToGuidesProperty());
-        bindBidirectional(menuSnapToGeometry, designerEngine.snapToGeometryProperty());
-        bindBidirectional(menuShowSpreadsheetTags, designerEngine.showSpreadsheetTagsProperty());
-        bindBidirectional(menuShowJSONTags, designerEngine.showJSONTagsProperty());
-        bindBidirectional(menuShowCSVTags, designerEngine.showCSVTagsProperty());
-        bindBidirectional(menuShowXLSTags, designerEngine.showXLSTagsProperty());
-        bindBidirectional(menuHighlightRenderGrid, designerEngine.highlightRenderGridProperty());
-        bindBidirectional(menuShowPDF508Tags, designerEngine.showPDF508TagsProperty());
-        bindBidirectional(menuShowErrorsForElements, designerEngine.showErrorsForElementsProperty());
+        // Initial setup binding is empty as it depends on updateCurrentEngine
+        // We will call updateCurrentEngine(null) initially effectively.
+    }
 
-        // History Actions
-        setupAction(btnUndo, designerEngine.getHistoryManager()::undo, designerEngine.getHistoryManager().canUndoProperty().not());
-        setupAction(btnRedo, designerEngine.getHistoryManager()::redo, designerEngine.getHistoryManager().canRedoProperty().not());
-        setupAction(menuUndo, designerEngine.getHistoryManager()::undo, designerEngine.getHistoryManager().canUndoProperty().not());
-        setupAction(menuRedo, designerEngine.getHistoryManager()::redo, designerEngine.getHistoryManager().canRedoProperty().not());
+    private void updateCurrentEngine(com.jasperstudio.designer.DesignerEngine newEngine) {
+        // Unbind Old
+        if (this.currentEngine != null) {
+            unbindEngine(this.currentEngine);
+        }
 
-        // Edit Actions
-        setupAction(menuDelete, designerEngine::deleteSelection);
-        setupAction(menuSelectAll, designerEngine::selectAll);
-        setupAction(menuCut, designerEngine::cut);
-        setupAction(menuCopy, designerEngine::copy);
-        setupAction(menuPaste, designerEngine::paste);
+        this.currentEngine = newEngine;
+
+        // Update Sub Panels
+        if (outlinePanel != null)
+            outlinePanel.setDesignerEngine(newEngine);
+        if (propertiesPanel != null)
+            propertiesPanel.setDesignerEngine(newEngine);
+        if (assistantPanel != null)
+            assistantPanel.setDesignerEngine(newEngine);
+        if (logPanel != null)
+            logPanel.setDesignerEngine(newEngine);
+        if (dataSourcePanel != null)
+            dataSourcePanel.setDesignerEngine(newEngine);
+
+        // Bind New
+        if (this.currentEngine != null) {
+            bindEngine(this.currentEngine);
+        } else {
+            // Disable actions?
+            disableActions(true);
+        }
+    }
+
+    private void unbindEngine(com.jasperstudio.designer.DesignerEngine engine) {
+        if (engine == null)
+            return;
+
+        // Remove bindings for menu items
+        // Since bindBidirectional was used, we need to unbind bidirectionally.
+        // CheckMenuItem.selectedProperty().unbindBidirectional(property)
+
+        unbindProp(menuShowGrid, engine.showGridProperty());
+        unbindProp(menuShowRulers, engine.showRulersProperty());
+        unbindProp(menuSnapToGrid, engine.snapToGridProperty());
+        unbindProp(menuSnapToGuides, engine.snapToGuidesProperty());
+        unbindProp(menuSnapToGeometry, engine.snapToGeometryProperty());
+        unbindProp(menuShowSpreadsheetTags, engine.showSpreadsheetTagsProperty());
+        unbindProp(menuShowJSONTags, engine.showJSONTagsProperty());
+        unbindProp(menuShowCSVTags, engine.showCSVTagsProperty());
+        unbindProp(menuShowXLSTags, engine.showXLSTagsProperty());
+        unbindProp(menuHighlightRenderGrid, engine.highlightRenderGridProperty());
+        unbindProp(menuShowPDF508Tags, engine.showPDF508TagsProperty());
+        unbindProp(menuShowErrorsForElements, engine.showErrorsForElementsProperty());
+
+        // Actions are typically set via setOnAction calling a lambda capturing
+        // 'currentEngine' (which is this.currentEngine field?),
+        // BUT my previous code setOnAction(e ->
+        // designerEngine.getHistoryManager().undo()).
+        // If I change designerEngine to currentEngine, and currentEngine reference
+        // changes, the lambda might be stale if it captured the field value?
+        // No, if lambda uses 'this.currentEngine', it uses the current value of the
+        // field.
+        // HOWEVER, 'setupAction' binds disableProperty. We need to unbind that.
+
+        menuUndo.disableProperty().unbind();
+        menuRedo.disableProperty().unbind();
+    }
+
+    private void bindEngine(com.jasperstudio.designer.DesignerEngine engine) {
+        if (engine == null)
+            return;
+
+        bindBidirectional(menuShowGrid, engine.showGridProperty());
+        bindBidirectional(menuShowRulers, engine.showRulersProperty());
+        bindBidirectional(menuSnapToGrid, engine.snapToGridProperty());
+        bindBidirectional(menuSnapToGuides, engine.snapToGuidesProperty());
+        bindBidirectional(menuSnapToGeometry, engine.snapToGeometryProperty());
+        bindBidirectional(menuShowSpreadsheetTags, engine.showSpreadsheetTagsProperty());
+        bindBidirectional(menuShowJSONTags, engine.showJSONTagsProperty());
+        bindBidirectional(menuShowCSVTags, engine.showCSVTagsProperty());
+        bindBidirectional(menuShowXLSTags, engine.showXLSTagsProperty());
+        bindBidirectional(menuHighlightRenderGrid, engine.highlightRenderGridProperty());
+        bindBidirectional(menuShowPDF508Tags, engine.showPDF508TagsProperty());
+        bindBidirectional(menuShowErrorsForElements, engine.showErrorsForElementsProperty());
+
+        // History bindings
+        menuUndo.disableProperty().bind(engine.getHistoryManager().canUndoProperty().not());
+        menuRedo.disableProperty().bind(engine.getHistoryManager().canRedoProperty().not());
+
+        // Define Actions (using current engine)
+        // Note: We don't need to re-set onAction if we use 'this.currentEngine' in the
+        // lambda,
+        // BUT we do need to re-bind disable properties.
+        // Actions wrapper:
+        disableActions(false);
+    }
+
+    private void disableActions(boolean disable) {
+        // Enable/Disable non-bound actions if no engine
+        menuCut.setDisable(disable);
+        menuCopy.setDisable(disable);
+        menuPaste.setDisable(disable);
+        menuDelete.setDisable(disable);
+        menuSelectAll.setDisable(disable);
+
+        if (disable) {
+            menuUndo.setDisable(true);
+            menuRedo.setDisable(true);
+        }
+    }
+
+    private void unbindProp(CheckMenuItem item, BooleanProperty prop) {
+        if (item != null && prop != null) {
+            item.selectedProperty().unbindBidirectional(prop);
+        }
+    }
+
+    private void setupActivityBar() {
+        // Clear initial items (managed by buttons)
+        if (leftSidebarContainer != null)
+            leftSidebarContainer.getItems().clear();
+        if (rightSidebarContainer != null)
+            rightSidebarContainer.getItems().clear();
+
+        // Left Sidebar Handlers
+        setupSidebarToggle(btnActivityPalette, leftSidebarContainer, paletteContainer, 0);
+        setupSidebarToggle(btnActivityOutline, leftSidebarContainer, outlineContainer, 0);
+        setupSidebarToggle(btnActivityData, leftSidebarContainer, dataContainer, 0);
+
+        // Right Sidebar Handlers
+        setupSidebarToggle(btnActivityProperties, rightSidebarContainer, propertiesContainer, -1);
+        setupSidebarToggle(btnActivityAssistant, rightSidebarContainer, assistantContainer, -1);
+
+        // Bottom
+        btnActivityProblems.selectedProperty().addListener((obs, old, isSelected) -> {
+            toggleSplitItem(mainSplit, bottomContainer, isSelected, 1);
+        });
+    }
+
+    private void setupSidebarToggle(ToggleButton btn, SplitPane sidebar, Node panel, int centerSplitIndex) {
+        if (btn == null)
+            return;
+
+        // Listener
+        btn.selectedProperty().addListener((obs, old, isSelected) -> {
+            updateSidebarState(sidebar, panel, isSelected, centerSplitIndex);
+        });
+
+        // Initial State
+        if (btn.isSelected()) {
+            updateSidebarState(sidebar, panel, true, centerSplitIndex);
+        }
+    }
+
+    private void updateSidebarState(SplitPane sidebar, Node panel, boolean showPanel, int centerSplitIndex) {
+        if (sidebar == null || panel == null)
+            return;
+
+        // 1. Toggle panel in sidebar
+        toggleSplitItem(sidebar, panel, showPanel, -1);
+
+        // 2. Toggle sidebar in center split based on whether it has items
+        boolean hasItems = !sidebar.getItems().isEmpty();
+        toggleSplitItem(centerSplit, sidebar, hasItems, centerSplitIndex);
+    }
+
+    private void toggleSplitItem(SplitPane split, Node item, boolean show, int targetIndex) {
+        if (split == null || item == null)
+            return;
+
+        boolean isPresent = split.getItems().contains(item);
+
+        if (show && !isPresent) {
+            if (targetIndex >= 0 && targetIndex <= split.getItems().size()) {
+                split.getItems().add(targetIndex, item);
+            } else {
+                split.getItems().add(item);
+            }
+            if (split == centerSplit) {
+                // Adjust divider if strictly needed, or let user adjust
+                if (split.getItems().size() > 1) {
+                    split.setDividerPositions(0.2, 0.8);
+                }
+            } else if (split == mainSplit) {
+                split.setDividerPositions(0.8);
+            }
+        } else if (!show && isPresent) {
+            split.getItems().remove(item);
+        }
     }
 
     private void bindBidirectional(CheckMenuItem item, BooleanProperty property) {
         if (item != null && property != null) {
             item.selectedProperty().bindBidirectional(property);
-        }
-    }
-
-    private void setupAction(ButtonBase button, Runnable action, ObservableValue<Boolean> disableProperty) {
-        if (button != null) {
-            button.setOnAction(e -> action.run());
-            if (disableProperty != null) {
-                button.disableProperty().bind(disableProperty);
-            }
         }
     }
 
@@ -179,75 +416,15 @@ public class MainWorkspace extends BorderPane {
         }
     }
 
-    private void setupViewActions() {
-        // Listener for sidebar updates
-        Runnable updateLayout = () -> {
-            updateLeftSidebar();
-            updateRightSidebar();
-        };
-
-        // Register listeners
-        registerListener(menuShowPalette, updateLayout);
-        registerListener(menuShowData, updateLayout);
-        registerListener(menuShowOutline, updateLayout);
-        registerListener(menuShowProperties, updateLayout);
-        registerListener(menuShowAssistant, updateLayout);
-
-        // Initial state
-        updateLayout.run();
-    }
-
-    private void registerListener(CheckMenuItem item, Runnable action) {
-        if (item != null) {
-            item.selectedProperty().addListener((obs, old, val) -> action.run());
-        }
-    }
-
-    private void updateRightSidebar() {
-        updateTabPane(rightUpperTabPane, menuShowProperties, tabProperties);
-        updateTabPane(rightLowerTabPane, menuShowAssistant, tabAssistant);
-        updateSidebarContainer(rightSidebar, rightUpperTabPane, rightLowerTabPane);
-    }
-
-    private void updateLeftSidebar() {
-        updateTabPane(leftUpperTabPane, menuShowPalette, tabPalette);
-        updateTabPane(leftUpperTabPane, menuShowData, tabData);
-        updateTabPane(leftLowerTabPane, menuShowOutline, tabOutline);
-        updateSidebarContainer(leftSidebar, leftUpperTabPane, leftLowerTabPane);
-    }
-
-    private void updateSidebarContainer(SplitPane sidebar, TabPane... panes) {
-        if (sidebar == null) return;
-
-        // Update sidebar children (split items)
-        for (TabPane pane : panes) {
-            if (pane != null) {
-                updateSplitPaneItem(sidebar, pane, !pane.getTabs().isEmpty());
-            }
-        }
-
-        // Update Main Split
-        boolean showSidebar = !sidebar.getItems().isEmpty();
-        boolean hasSidebar = mainSplit.getItems().contains(sidebar);
-
-        if (showSidebar && !hasSidebar) {
-            if (sidebar == leftSidebar) {
-                mainSplit.getItems().add(0, leftSidebar);
-            } else {
-                mainSplit.getItems().add(sidebar);
-            }
-            mainSplit.setDividerPositions(0.2, 0.8);
-        } else if (!showSidebar && hasSidebar) {
-            mainSplit.getItems().remove(sidebar);
-        }
-    }
-
     private void updateTheme(String type) {
         if (getScene() == null)
             return;
         getScene().getStylesheets().clear();
 
-        String css = "css/light.css"; // default
+        String workspaceCss = getClass().getResource("MainWorkspace.css").toExternalForm();
+        getScene().getStylesheets().add(workspaceCss);
+
+        String css = "css/light.css";
         if ("DARK".equals(type)) {
             css = "css/dark.css";
         } else if ("GLASS".equals(type)) {
@@ -256,7 +433,6 @@ public class MainWorkspace extends BorderPane {
 
         getScene().getStylesheets().add(getClass().getResource(css).toExternalForm());
 
-        // Sync menu state if called programmatically
         if ("DARK".equals(type) && menuStyleDark != null)
             menuStyleDark.setSelected(true);
         else if ("GLASS".equals(type) && menuStyleGlass != null)
@@ -271,16 +447,17 @@ public class MainWorkspace extends BorderPane {
         setupThemeItem(menuStyleDark, "DARK", themeGroup);
         setupThemeItem(menuStyleGlass, "GLASS", themeGroup);
 
-        // Wait for scene to apply initial theme
         this.sceneProperty().addListener((obs, old, scene) -> {
             if (scene != null) {
-                // Default to Light if nothing selected, or check selected
                 if (menuStyleDark != null && menuStyleDark.isSelected())
                     updateTheme("DARK");
                 else if (menuStyleGlass != null && menuStyleGlass.isSelected())
                     updateTheme("GLASS");
                 else
                     updateTheme("LIGHT");
+
+                setupShortcuts();
+                setupActions();
             }
         });
     }
@@ -292,58 +469,87 @@ public class MainWorkspace extends BorderPane {
         }
     }
 
-    private void updateTabPane(TabPane pane, CheckMenuItem menu, Tab tab) {
-        if (pane == null || menu == null || tab == null)
-            return;
-        boolean show = menu.isSelected();
-        boolean has = pane.getTabs().contains(tab);
-        if (show && !has) {
-            pane.getTabs().add(tab);
-        } else if (!show && has) {
-            pane.getTabs().remove(tab);
-        }
-    }
-
-    private void updateSplitPaneItem(SplitPane split, Node item, boolean show) {
-        if (split == null || item == null)
-            return;
-        boolean has = split.getItems().contains(item);
-        if (show && !has) {
-            split.getItems().add(item);
-        } else if (!show && has) {
-            split.getItems().remove(item);
-        }
-    }
-
     @FXML
     private void onNew() {
-        designerEngine.newDesign();
+        com.jasperstudio.designer.DesignerEngine engine = new com.jasperstudio.designer.DesignerEngine();
+        EditorTab tab = new EditorTab("NewReport", engine);
+        editorTabPane.getTabs().add(tab);
+        editorTabPane.getSelectionModel().select(tab);
+        // Focus canvas
+        tab.getContent().requestFocus();
     }
 
     @FXML
     private void onOpen() {
         File file = showFileChooser("Open Report Design", false);
         if (file != null) {
+            // Check if already open
+            for (Tab t : editorTabPane.getTabs()) {
+                if (t instanceof EditorTab) {
+                    EditorTab et = (EditorTab) t;
+                    if (et.getFile() != null && et.getFile().equals(file)) {
+                        editorTabPane.getSelectionModel().select(t);
+                        return;
+                    }
+                }
+            }
+
             try {
-                designerEngine.openDesign(file);
+                com.jasperstudio.designer.DesignerEngine engine = new com.jasperstudio.designer.DesignerEngine();
+                engine.openDesign(file);
+
+                EditorTab tab = new EditorTab(file.getName(), engine);
+                tab.setFile(file);
+
+                editorTabPane.getTabs().add(tab);
+                editorTabPane.getSelectionModel().select(tab);
                 logger.info("Opened design: {}", file.getAbsolutePath());
             } catch (Exception ex) {
                 logger.error("Failed to open design", ex);
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to open design: " + ex.getMessage());
+                alert.showAndWait();
             }
         }
     }
 
     @FXML
     private void onSave() {
-        File file = showFileChooser("Save Report Design", true);
+        if (currentEngine == null)
+            return;
+
+        EditorTab currentTab = (EditorTab) editorTabPane.getSelectionModel().getSelectedItem();
+        if (currentTab == null)
+            return;
+
+        File file = currentTab.getFile();
+        if (file == null) {
+            file = showFileChooser("Save Report Design", true);
+        }
+
         if (file != null) {
             try {
-                designerEngine.saveDesign(file);
+                currentEngine.saveDesign(file);
+                currentTab.setFile(file); // Update tab info
                 logger.info("Saved design to: {}", file.getAbsolutePath());
             } catch (Exception ex) {
                 logger.error("Failed to save design", ex);
+                Alert alert = new Alert(Alert.AlertType.ERROR, "Failed to save design: " + ex.getMessage());
+                alert.showAndWait();
             }
         }
+    }
+
+    @FXML
+    private void onClose() {
+        Tab selected = editorTabPane.getSelectionModel().getSelectedItem();
+        if (selected != null) {
+            editorTabPane.getTabs().remove(selected);
+        }
+    }
+
+    @FXML
+    private void onCloseAll() {
+        editorTabPane.getTabs().clear();
     }
 
     private File showFileChooser(String title, boolean save) {
@@ -364,11 +570,83 @@ public class MainWorkspace extends BorderPane {
 
     @FXML
     private void onZoomIn() {
-        designerEngine.zoomIn();
+        if (currentEngine != null)
+            currentEngine.zoomIn();
     }
 
     @FXML
     private void onZoomOut() {
-        designerEngine.zoomOut();
+        if (currentEngine != null)
+            currentEngine.zoomOut();
+    }
+
+    // Define Actions for Menus using currentEngine wrapper
+    private void setupActions() {
+        // This is a correction to setupBindings.
+        // Since bindEngine handles disable props, we just need to ensure the menu items
+        // invoke current engine actions.
+        if (menuUndo != null)
+            menuUndo.setOnAction(e -> {
+                if (currentEngine != null)
+                    currentEngine.getHistoryManager().undo();
+            });
+        if (menuRedo != null)
+            menuRedo.setOnAction(e -> {
+                if (currentEngine != null)
+                    currentEngine.getHistoryManager().redo();
+            });
+
+        if (menuDelete != null)
+            menuDelete.setOnAction(e -> {
+                if (currentEngine != null)
+                    currentEngine.deleteSelection();
+            });
+        if (menuSelectAll != null)
+            menuSelectAll.setOnAction(e -> {
+                if (currentEngine != null)
+                    currentEngine.selectAll();
+            });
+        if (menuCut != null)
+            menuCut.setOnAction(e -> {
+                if (currentEngine != null)
+                    currentEngine.cut();
+            });
+        if (menuCopy != null)
+            menuCopy.setOnAction(e -> {
+                if (currentEngine != null)
+                    currentEngine.copy();
+            });
+        if (menuPaste != null)
+            menuPaste.setOnAction(e -> {
+                if (currentEngine != null)
+                    currentEngine.paste();
+            });
+    }
+
+    // Add Shortcuts
+    public void setupShortcuts() {
+        if (getScene() == null)
+            return;
+
+        getScene().getAccelerators().put(
+                new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.S,
+                        javafx.scene.input.KeyCombination.SHORTCUT_DOWN),
+                this::onSave);
+        getScene().getAccelerators().put(
+                new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.W,
+                        javafx.scene.input.KeyCombination.SHORTCUT_DOWN),
+                this::onClose);
+        getScene().getAccelerators().put(
+                new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.W,
+                        javafx.scene.input.KeyCombination.SHORTCUT_DOWN, javafx.scene.input.KeyCombination.SHIFT_DOWN),
+                this::onCloseAll);
+        getScene().getAccelerators().put(
+                new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.N,
+                        javafx.scene.input.KeyCombination.SHORTCUT_DOWN),
+                this::onNew);
+        getScene().getAccelerators().put(
+                new javafx.scene.input.KeyCodeCombination(javafx.scene.input.KeyCode.O,
+                        javafx.scene.input.KeyCombination.SHORTCUT_DOWN),
+                this::onOpen);
     }
 }

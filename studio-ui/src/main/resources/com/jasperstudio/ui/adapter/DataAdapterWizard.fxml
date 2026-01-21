@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" 
+            fx:controller="com.jasperstudio.ui.adapter.DataAdapterWizard"
+            prefWidth="600" prefHeight="450">
+            
+    <top>
+        <VBox style="-fx-background-color: #f4f4f4; -fx-padding: 15;">
+            <Label text="Data Adapter Wizard" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+            <Label text="Configure a new data source for your reports." style="-fx-text-fill: #666;"/>
+        </VBox>
+    </top>
+    
+    <center>
+        <StackPane fx:id="stepContainer" style="-fx-padding: 20;">
+            <!-- Step 1: Type Selection -->
+            <VBox fx:id="stepTypeSelection" spacing="10">
+                <Label text="Select Adapter Type:" style="-fx-font-weight: bold;"/>
+                <ListView fx:id="listAdapterTypes" VBox.vgrow="ALWAYS"/>
+            </VBox>
+            
+            <!-- Step 2: JDBC Config -->
+            <VBox fx:id="stepJdbcConfig" spacing="10" visible="false">
+                <Label text="Database JDBC Connection" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+                
+                <GridPane hgap="10" vgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="100"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                    </columnConstraints>
+                    
+                    <Label text="Name:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtJdbcName" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                    
+                    <Label text="JDBC Driver:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <ComboBox fx:id="comboJdbcDriver" editable="true" maxWidth="Infinity" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+                    
+                    <Label text="JDBC URL:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtJdbcUrl" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Username:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtJdbcUser" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Password:" GridPane.rowIndex="4" GridPane.columnIndex="0"/>
+                    <PasswordField fx:id="txtJdbcPass" GridPane.rowIndex="4" GridPane.columnIndex="1"/>
+                </GridPane>
+                
+                <HBox alignment="CENTER_RIGHT" spacing="10">
+                    <Button text="Test Connection" onAction="#testJdbcConnection"/>
+                </HBox>
+                <Label fx:id="lblJdbcStatus" text="" style="-fx-text-fill: red;"/>
+            </VBox>
+            
+            <!-- Step 2: JSON Config -->
+            <VBox fx:id="stepJsonConfig" spacing="10" visible="false">
+                 <Label text="JSON Data Source" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+                 
+                 <GridPane hgap="10" vgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="100"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                    </columnConstraints>
+                    
+                    <Label text="Name:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtJsonName" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                    
+                    <Label text="File / URL:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <HBox GridPane.rowIndex="1" GridPane.columnIndex="1" spacing="5">
+                        <TextField fx:id="txtJsonFile" HBox.hgrow="ALWAYS"/>
+                        <Button text="..." onAction="#browseJsonFile"/>
+                    </HBox>
+                    
+                    <Label text="Date Pattern:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtJsonDatePattern" text="yyyy-MM-dd" GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                </GridPane>
+            </VBox>
+            
+             <!-- Step 2: CSV Config -->
+            <VBox fx:id="stepCsvConfig" spacing="10" visible="false">
+                 <Label text="CSV Data Source" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
+                 
+                 <GridPane hgap="10" vgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints minWidth="100"/>
+                        <ColumnConstraints hgrow="ALWAYS"/>
+                    </columnConstraints>
+                    
+                    <Label text="Name:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtCsvName" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+                    
+                    <Label text="File:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                    <HBox GridPane.rowIndex="1" GridPane.columnIndex="1" spacing="5">
+                         <TextField fx:id="txtCsvFile" HBox.hgrow="ALWAYS"/>
+                         <Button text="..." onAction="#browseCsvFile"/>
+                    </HBox>
+                    
+                    <Label text="Delimiter:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                    <TextField fx:id="txtCsvDelimiter" text="," GridPane.rowIndex="2" GridPane.columnIndex="1"/>
+                    
+                    <Label text="Options:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                    <CheckBox fx:id="chkCsvHeaders" text="First row is header" selected="true" GridPane.rowIndex="3" GridPane.columnIndex="1"/>
+                </GridPane>
+            </VBox>
+            
+        </StackPane>
+    </center>
+    
+    <bottom>
+        <HBox spacing="10" alignment="CENTER_RIGHT" style="-fx-padding: 15; -fx-border-color: #ddd; -fx-border-width: 1 0 0 0;">
+            <Button text="Cancel" onAction="#onCancel"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button fx:id="btnBack" text="&lt; Back" onAction="#onBack" disable="true"/>
+            <Button fx:id="btnNext" text="Next &gt;" onAction="#onNext"/>
+            <Button fx:id="btnFinish" text="Finish" onAction="#onFinish" disable="true" defaultButton="true"/>
+        </HBox>
+    </bottom>
+    
+</BorderPane>

@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
+<?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.layout.VBox?>
 
 <fx:root type="VBox" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
     <children>
+        <Label text="Palette" styleClass="sidebar-header" maxWidth="Infinity" />
         <ListView fx:id="toolList" VBox.vgrow="ALWAYS" style="-fx-background-color: white; -fx-control-inner-background: white;" />
     </children>
 </fx:root>

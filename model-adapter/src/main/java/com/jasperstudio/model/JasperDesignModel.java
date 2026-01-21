@@ -42,6 +42,12 @@ public class JasperDesignModel {
         this.topMargin.set(design.getTopMargin());
         this.bottomMargin.set(design.getBottomMargin());
 
+        if (design.getQuery() != null) {
+            this.queryString.set(design.getQuery().getText());
+        } else {
+            this.queryString.set("");
+        }
+
         // Sync Bands
         this.bands.clear();
         addBandToModel("Title", design.getTitle());
@@ -79,6 +85,12 @@ public class JasperDesignModel {
         this.rightMargin.addListener((obs, old, newVal) -> design.setRightMargin(newVal.intValue()));
         this.topMargin.addListener((obs, old, newVal) -> design.setTopMargin(newVal.intValue()));
         this.bottomMargin.addListener((obs, old, newVal) -> design.setBottomMargin(newVal.intValue()));
+
+        this.queryString.addListener((obs, old, newVal) -> {
+            net.sf.jasperreports.engine.design.JRDesignQuery query = new net.sf.jasperreports.engine.design.JRDesignQuery();
+            query.setText(newVal);
+            design.setQuery(query);
+        });
     }
 
     public JasperDesign getDesign() {
@@ -159,5 +171,20 @@ public class JasperDesignModel {
 
     public IntegerProperty bottomMarginProperty() {
         return bottomMargin;
+    }
+
+    // Query Support
+    private final StringProperty queryString = new SimpleStringProperty();
+
+    public StringProperty queryStringProperty() {
+        return queryString;
+    }
+
+    public String getQueryString() {
+        return queryString.get();
+    }
+
+    public void setQueryString(String query) {
+        this.queryString.set(query);
     }
 }

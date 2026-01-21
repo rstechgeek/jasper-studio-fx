@@ -18,7 +18,7 @@ import java.io.IOException;
 
 public class AssistantPanel extends BorderPane {
 
-    private final DesignerEngine engine;
+    private DesignerEngine engine;
     private final ObservableList<ChatMessage> messages = FXCollections.observableArrayList();
 
     @FXML
@@ -31,10 +31,14 @@ public class AssistantPanel extends BorderPane {
     private final com.jasperstudio.ai.AiService aiService;
 
     public AssistantPanel(DesignerEngine engine) {
-        this.engine = engine;
+        setDesignerEngine(engine);
         this.aiService = new com.jasperstudio.ai.MockAiService();
         loadFXML();
         initUI();
+    }
+
+    public void setDesignerEngine(DesignerEngine engine) {
+        this.engine = engine;
     }
 
     private void loadFXML() {

@@ -251,10 +251,20 @@ public class DesignerEngine {
 
     public void setDesign(JasperDesignModel design) {
         this.currentDesign.set(design);
+        if (design != null) {
+            setSelection(design);
+        }
     }
 
     public JasperDesignModel getDesign() {
         return currentDesign.get();
+    }
+
+    public void setQueryString(String query) {
+        if (getDesign() != null) {
+            getDesign().setQueryString(query);
+            // Optional: Trigger field extraction later
+        }
     }
 
     public ObjectProperty<JasperDesignModel> currentDesignProperty() {

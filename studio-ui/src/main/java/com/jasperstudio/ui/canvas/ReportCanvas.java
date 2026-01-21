@@ -59,25 +59,40 @@ public class ReportCanvas extends BorderPane {
 
     private final DesignerEngine engine;
 
-    @FXML private StackPane workspaceArea;
-    @FXML private Group pageGroup;
-    @FXML private StackPane pagePane;
-    @FXML private Pane gridLayer;
-    @FXML private Pane contentLayer;
-    @FXML private Pane adornerLayer;
-    @FXML private RulerControl hRuler;
-    @FXML private RulerControl vRuler;
-    @FXML private ScrollPane internalScrollPane;
+    @FXML
+    private StackPane workspaceArea;
+    @FXML
+    private Group pageGroup;
+    @FXML
+    private StackPane pagePane;
+    @FXML
+    private Pane gridLayer;
+    @FXML
+    private Pane contentLayer;
+    @FXML
+    private Pane adornerLayer;
+    @FXML
+    private RulerControl hRuler;
+    @FXML
+    private RulerControl vRuler;
+    @FXML
+    private ScrollPane internalScrollPane;
 
-    @FXML private Button btnDesign;
-    @FXML private Button btnSource;
-    @FXML private Button btnPreview;
+    @FXML
+    private Button btnDesign;
+    @FXML
+    private Button btnSource;
+    @FXML
+    private Button btnPreview;
 
-    @FXML private TextArea sourceEditor;
-    @FXML private ScrollPane previewContainer;
-    @FXML private ImageView previewImage;
-    @FXML private HBox topBox;
-
+    @FXML
+    private TextArea sourceEditor;
+    @FXML
+    private ScrollPane previewContainer;
+    @FXML
+    private ImageView previewImage;
+    @FXML
+    private HBox topBox;
 
     public ReportCanvas(DesignerEngine engine) {
         this.engine = engine;
@@ -185,7 +200,7 @@ public class ReportCanvas extends BorderPane {
 
             setCenter(internalScrollPane);
             setLeft(vRuler);
-            // setTop(topBox); // Ruler/Tools
+            setTop(topBox); // Restore Ruler/Tools
 
             // Refresh
             updateWorkspaceSize();
@@ -222,7 +237,7 @@ public class ReportCanvas extends BorderPane {
 
                 setCenter(sourceEditor);
                 setLeft(null);
-                // setTop(null);
+                setTop(null); // Hide Ruler/Tools
 
                 btnSource.setDisable(true);
                 btnDesign.setDisable(false);
@@ -268,7 +283,7 @@ public class ReportCanvas extends BorderPane {
 
         setCenter(previewContainer);
         setLeft(null);
-        // setTop(null);
+        setTop(null); // Hide Ruler/Tools
 
         btnPreview.setDisable(true);
         btnSource.setDisable(false);
@@ -541,7 +556,8 @@ public class ReportCanvas extends BorderPane {
             }
             case JRDesignFrame frame -> {
                 Pane framePane = new Pane();
-                framePane.setStyle("-fx-border-color: black; -fx-border-width: 1; -fx-background-color: rgba(0,0,0,0.05);");
+                framePane.setStyle(
+                        "-fx-border-color: black; -fx-border-width: 1; -fx-background-color: rgba(0,0,0,0.05);");
                 setupDropTarget(framePane, model);
                 JRElement[] childrenArray = frame.getElements();
                 if (childrenArray != null) {
@@ -618,7 +634,8 @@ public class ReportCanvas extends BorderPane {
             }
             case JRDesignSubreport ignored -> {
                 StackPane subPlaceholder = new StackPane();
-                subPlaceholder.setStyle("-fx-background-color: #e0e0e0; -fx-border-color: #666; -fx-border-style: dashed;");
+                subPlaceholder
+                        .setStyle("-fx-background-color: #e0e0e0; -fx-border-color: #666; -fx-border-style: dashed;");
                 subPlaceholder.getChildren().add(new Label("SUBREPORT"));
                 return subPlaceholder;
             }
@@ -631,7 +648,8 @@ public class ReportCanvas extends BorderPane {
             case JRDesignCrosstab ignored -> {
                 StackPane xtabPlaceholder = new StackPane();
                 xtabPlaceholder
-                        .setStyle("-fx-background-color: #d1c4e9; -fx-border-color: #673ab7; -fx-border-style: dotted;");
+                        .setStyle(
+                                "-fx-background-color: #d1c4e9; -fx-border-color: #673ab7; -fx-border-style: dotted;");
                 xtabPlaceholder.getChildren().add(new Label("CROSSTAB"));
                 return xtabPlaceholder;
             }
@@ -712,7 +730,11 @@ public class ReportCanvas extends BorderPane {
 
         engine.selectionProperty().addListener((obs, oldVal, newVal) -> updateSelectionVisual(newVal));
 
-        pagePane.setOnMousePressed(e -> engine.clearSelection());
+        pagePane.setOnMousePressed(e -> {
+            // Clicking on the page background selects the Report
+            engine.setSelection(design);
+            e.consume();
+        });
 
         // Drag Handler on Page (redirect to bands?)
         // For now, simple logic
@@ -764,6 +786,27 @@ public class ReportCanvas extends BorderPane {
                         }
                     }
                 });
+
+        // Selection Logic
+        bandPane.setOnMousePressed(e -> {
+            engine.setSelection(band);
+            e.consume();
+        });
+
+        // Hover Effect
+        bandPane.setOnMouseEntered(e -> {
+            if (engine.getSelection() != band) { // Only highlight if not already selected
+                bandPane.setStyle(
+                        "-fx-border-color: #aaa; -fx-border-width: 1; -fx-background-color: rgba(0,0,0,0.02);");
+            }
+        });
+        bandPane.setOnMouseExited(e -> {
+            if (engine.getSelection() != band) {
+                // Revert to default
+                bandPane.setStyle(
+                        "-fx-border-color: #ddd; -fx-border-width: 0 0 1 0; -fx-background-color: transparent;");
+            }
+        });
 
         // Drop into this band
         setupDropTarget(bandPane, band);
@@ -882,7 +925,8 @@ public class ReportCanvas extends BorderPane {
                             Point2D nodeInBand = bandNode.sceneToLocal(nodeScene);
 
                             int newRelY = (int) nodeInBand.getY();
-                            if (newRelY < 0) newRelY = 0;
+                            if (newRelY < 0)
+                                newRelY = 0;
 
                             engine.moveElementToBand(model, targetBand, newRelY);
                         }
@@ -1077,7 +1121,8 @@ public class ReportCanvas extends BorderPane {
 
                 if (initialX != endX || initialY != endY || initialW != endW || initialH != endH) {
                     ResizeElementCommand cmd = new ResizeElementCommand(
-                            model, (int)initialX, (int)initialY, (int)initialW, (int)initialH, endX, endY, endW, endH);
+                            model, (int) initialX, (int) initialY, (int) initialW, (int) initialH, endX, endY, endW,
+                            endH);
                     engine.executeCommand(cmd);
                 }
 

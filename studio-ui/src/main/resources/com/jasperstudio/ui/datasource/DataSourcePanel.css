@@ -1,0 +1,9 @@
+/* DataSourcePanel.css */
+.sidebar-header {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-padding: 5 10 5 10;
+    -fx-background-color: -fx-control-inner-background;
+    -fx-border-color: -fx-base;
+    -fx-border-width: 0 0 1 0;
+}

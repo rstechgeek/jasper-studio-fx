@@ -13,7 +13,7 @@ import javafx.scene.layout.VBox;
  */
 public class PropertiesPanel extends VBox {
 
-    private final DesignerEngine engine;
+    private DesignerEngine engine;
 
     // Controls
     @javafx.fxml.FXML
@@ -86,11 +86,42 @@ public class PropertiesPanel extends VBox {
     @javafx.fxml.FXML
     private GridPane grid;
 
+    private javafx.beans.value.ChangeListener<Object> selectionListener;
+
     public PropertiesPanel(DesignerEngine engine) {
-        this.engine = engine;
         loadFXML();
-        // initUI(); // FXML does this
-        setupListeners();
+
+        this.selectionListener = (obs, oldVal, newVal) -> {
+            unbind(oldVal);
+            bind(newVal);
+        };
+
+        setDesignerEngine(engine);
+    }
+
+    public void setDesignerEngine(DesignerEngine newEngine) {
+        if (this.engine != null) {
+            this.engine.selectionProperty().removeListener(selectionListener);
+            // Unbind current selection if any
+            unbind(this.engine.getSelection());
+        }
+
+        this.engine = newEngine;
+
+        if (this.engine != null) {
+            this.engine.selectionProperty().addListener(selectionListener);
+            // Verify if we should bind current selection immediately
+            if (this.engine.getSelection() != null) {
+                bind(this.engine.getSelection());
+            } else {
+                // If nothing selected, maybe clear inputs?
+                // setDisable(true); // handled in bind/unbind logic usually
+                unbind(null); // Ensure clean state
+            }
+        } else {
+            unbind(null);
+            setDisable(true);
+        }
     }
 
     private void loadFXML() {
@@ -204,13 +235,6 @@ public class PropertiesPanel extends VBox {
     }
 
     private ElementModel currentModel; // Keep for reference if needed, though mostly using listeners
-
-    private void setupListeners() {
-        engine.selectionProperty().addListener((obs, oldVal, newVal) -> {
-            unbind(oldVal);
-            bind(newVal);
-        });
-    }
 
     // Listeners references to allow unbinding
     private javafx.beans.value.ChangeListener<Integer> xUiListener;

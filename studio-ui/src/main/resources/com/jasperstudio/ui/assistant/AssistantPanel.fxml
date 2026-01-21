@@ -11,6 +11,9 @@
 <?import javafx.scene.control.Label?>
 
 <fx:root type="BorderPane" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml" style="-fx-background-color: #f4f4f4;">
+    <top>
+        <Label text="AI Assistant" styleClass="sidebar-header" maxWidth="Infinity" />
+    </top>
     <center>
         <ListView fx:id="chatHistory" style="-fx-background-color: transparent; -fx-padding: 10;">
             <placeholder>
