@@ -187,9 +187,16 @@ public class MainWorkspace extends BorderPane {
         // Tab Selection Listener
         editorTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
             if (newTab instanceof EditorTab) {
-                updateCurrentEngine(((EditorTab) newTab).getEngine());
+                EditorTab et = (EditorTab) newTab;
+                updateCurrentEngine(et.getEngine());
+                if (outlinePanel != null) {
+                    outlinePanel.setHeaderTitle(et.getText());
+                }
             } else {
                 updateCurrentEngine(null);
+                if (outlinePanel != null) {
+                    outlinePanel.setHeaderTitle(null);
+                }
             }
         });
 
@@ -530,6 +537,9 @@ public class MainWorkspace extends BorderPane {
             try {
                 currentEngine.saveDesign(file);
                 currentTab.setFile(file); // Update tab info
+                if (outlinePanel != null) {
+                    outlinePanel.setHeaderTitle(file.getName());
+                }
                 logger.info("Saved design to: {}", file.getAbsolutePath());
             } catch (Exception ex) {
                 logger.error("Failed to save design", ex);
@@ -544,12 +554,18 @@ public class MainWorkspace extends BorderPane {
         Tab selected = editorTabPane.getSelectionModel().getSelectedItem();
         if (selected != null) {
             editorTabPane.getTabs().remove(selected);
+            if (editorTabPane.getTabs().isEmpty() && outlinePanel != null) {
+                outlinePanel.setHeaderTitle(null);
+            }
         }
     }
 
     @FXML
     private void onCloseAll() {
         editorTabPane.getTabs().clear();
+        if (outlinePanel != null) {
+            outlinePanel.setHeaderTitle(null);
+        }
     }
 
     private File showFileChooser(String title, boolean save) {

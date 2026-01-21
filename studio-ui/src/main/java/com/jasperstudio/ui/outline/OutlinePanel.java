@@ -16,6 +16,26 @@ public class OutlinePanel extends VBox {
     private DesignerEngine engine;
 
     @javafx.fxml.FXML
+    private javafx.scene.control.Label lblHeader;
+
+    private String reportName = "Report";
+
+    public void setHeaderTitle(String title) {
+        if (lblHeader != null) {
+            lblHeader.setText("Outline");
+        }
+        if (title != null && !title.trim().isEmpty()) {
+            int dotIndex = title.lastIndexOf('.');
+            this.reportName = (dotIndex > 0) ? title.substring(0, dotIndex) : title;
+        } else {
+            this.reportName = "Report";
+        }
+        if (treeView != null) {
+            treeView.refresh();
+        }
+    }
+
+    @javafx.fxml.FXML
     private TreeView<Object> treeView;
     private boolean isUpdatingSelection = false;
 
@@ -37,14 +57,15 @@ public class OutlinePanel extends VBox {
             }
         };
 
-        // Initialize Tree Selection Listener once (doesn't depend on engine instance,
-        // but depends on treeView)
+        // Initialize Tree Selection Listener
         this.treeSelectionListener = (obs, oldVal, newVal) -> {
             if (isUpdatingSelection || this.engine == null)
                 return;
             isUpdatingSelection = true;
             try {
-                if (newVal != null) {
+                if (this.engine.getViewMode() == com.jasperstudio.designer.DesignerEngine.ViewMode.SOURCE) {
+                    handleSourceSelection(newVal);
+                } else if (newVal != null) {
                     Object val = newVal.getValue();
                     if (val instanceof com.jasperstudio.model.BandModel) {
                         this.engine.setSelection(val);
@@ -52,7 +73,7 @@ public class OutlinePanel extends VBox {
                         this.engine.setSelection(val);
                     } else if (val instanceof com.jasperstudio.model.JasperDesignModel) {
                         this.engine.setSelection(val);
-                    } else if (val instanceof JRDesignElement) { // Fallback, shouldn't happen with new tree
+                    } else if (val instanceof JRDesignElement) {
                         JRDesignElement el = (JRDesignElement) val;
                         ElementModel model = findModelForElement(this.engine.getDesign(), el);
                         this.engine.setSelection(model);
@@ -70,11 +91,58 @@ public class OutlinePanel extends VBox {
 
         setDesignerEngine(engine);
     }
-    // ... skipping to inner class fixes
-    // I need to use another replace call or include it here if contiguous.
-    // It is NOT contiguous.
-    // I will split into two calls or use multi_replace.
-    // I'll use multi_replace.
+
+    private void handleSourceSelection(TreeItem<Object> item) {
+        if (item == null || item.getValue() == null)
+            return;
+        if (item.getValue() instanceof XmlTag) {
+            XmlTag tag = (XmlTag) item.getValue();
+            // Calculate offset
+            String xml = this.engine.getXmlSource();
+            if (xml != null && !xml.isEmpty()) {
+                int startOffset = getOffset(xml, tag.line, tag.col);
+                int endOffset = -1;
+
+                if (tag.endLine > 0) {
+                    endOffset = getOffset(xml, tag.endLine, tag.endCol);
+                }
+
+                if (startOffset >= 0) {
+                    if (endOffset > startOffset) {
+                        // +1 to encompass the closing bracket '>' usually at that column
+                        // But SAX locator is loose. Let's try to find the closing '>' from the
+                        // endOffset
+                        int closeBracket = xml.indexOf('>', endOffset);
+                        if (closeBracket != -1) {
+                            endOffset = closeBracket + 1;
+                        }
+                        this.engine.setSourceSelection(startOffset, endOffset);
+                    } else {
+                        // Fallback
+                        int len = tag.name.length() + 1;
+                        this.engine.setSourceSelection(startOffset, startOffset + len);
+                    }
+                }
+            }
+        }
+    }
+
+    private int getOffset(String xml, int line, int col) {
+        // line is 1-based, col is 1-based
+        int currentLine = 1;
+        int max = xml.length();
+        for (int i = 0; i < max; i++) {
+            if (currentLine == line) {
+                return i + (col - 1);
+            }
+            if (xml.charAt(i) == '\n') {
+                currentLine++;
+            }
+        }
+        return -1;
+    }
+
+    // ... listeners ...
 
     public void setDesignerEngine(DesignerEngine newEngine) {
         // Cleanup old engine listeners
@@ -85,11 +153,6 @@ public class OutlinePanel extends VBox {
             if (selectionListener != null) {
                 this.engine.selectionProperty().removeListener(selectionListener);
             }
-            // Also unbind specific design if attached?
-            // The bindDesign(old, new) logic handles removing bandsListener from the design
-            // itself.
-            // But we should probably manually unhook the *current* design of the *old*
-            // engine before switching.
             if (this.engine.getDesign() != null) {
                 this.engine.getDesign().getBands().removeListener(bandsListener);
             }
@@ -135,6 +198,119 @@ public class OutlinePanel extends VBox {
             }
         };
         this.engine.selectionProperty().addListener(selectionListener);
+
+        // XML / View Support
+        this.engine.viewModeProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal == com.jasperstudio.designer.DesignerEngine.ViewMode.SOURCE) {
+                rebuildXmlTree(this.engine.getXmlSource());
+            } else {
+                if (this.engine.getDesign() != null) {
+                    // Rebind to design model
+                    bindToModel(this.engine.getDesign());
+                }
+            }
+        });
+
+        this.engine.xmlSourceProperty().addListener((obs, oldVal, newVal) -> {
+            if (this.engine.getViewMode() == com.jasperstudio.designer.DesignerEngine.ViewMode.SOURCE) {
+                // Throttle updates? For now simple.
+                rebuildXmlTree(newVal);
+            }
+        });
+    }
+
+    private void bindToModel(JasperDesignModel design) {
+        // Helper to recover standard view
+        if (design != null) {
+            rebuildTree(design);
+            design.getBands().removeListener(bandsListener); // avoid double add?
+            design.getBands().addListener(bandsListener);
+        }
+    }
+
+    // --- XML Implementation ---
+    private void rebuildXmlTree(String xml) {
+        if (xml == null || xml.trim().isEmpty()) {
+            treeView.setRoot(null);
+            return;
+        }
+        try {
+            javax.xml.parsers.SAXParserFactory factory = javax.xml.parsers.SAXParserFactory.newInstance();
+            javax.xml.parsers.SAXParser parser = factory.newSAXParser();
+            XmlTreeHandler handler = new XmlTreeHandler();
+            parser.parse(new java.io.ByteArrayInputStream(xml.getBytes("UTF-8")), handler);
+
+            TreeItem<Object> root = handler.getRoot();
+            if (root != null) {
+                treeView.setRoot(root);
+                root.setExpanded(true);
+            }
+        } catch (Exception e) {
+            // ignore or show error
+        }
+    }
+
+    private class XmlTreeHandler extends org.xml.sax.helpers.DefaultHandler {
+        private java.util.Stack<TreeItem<Object>> stack = new java.util.Stack<>();
+        private TreeItem<Object> root;
+        private org.xml.sax.Locator locator;
+
+        @Override
+        public void setDocumentLocator(org.xml.sax.Locator locator) {
+            this.locator = locator;
+        }
+
+        public TreeItem<Object> getRoot() {
+            return root;
+        }
+
+        @Override
+        public void startElement(String uri, String localName, String qName, org.xml.sax.Attributes attributes)
+                throws org.xml.sax.SAXException {
+            XmlTag tag = new XmlTag(qName, locator.getLineNumber(), locator.getColumnNumber());
+            TreeItem<Object> item = new TreeItem<>(tag);
+            item.setExpanded(true);
+
+            if (root == null) {
+                root = item;
+            } else {
+                if (!stack.isEmpty()) {
+                    stack.peek().getChildren().add(item);
+                }
+            }
+            stack.push(item);
+        }
+
+        @Override
+        public void endElement(String uri, String localName, String qName) throws org.xml.sax.SAXException {
+            if (!stack.isEmpty()) {
+                TreeItem<Object> item = stack.pop();
+                if (item.getValue() instanceof XmlTag) {
+                    XmlTag tag = (XmlTag) item.getValue();
+                    tag.endLine = locator.getLineNumber();
+                    tag.endCol = locator.getColumnNumber();
+                }
+            }
+        }
+    }
+
+    private class XmlTag {
+        String name;
+        int line;
+        int col;
+        int endLine = -1;
+        int endCol = -1;
+
+        public XmlTag(String name, int line, int col) {
+            this.name = name;
+            this.line = line;
+            this.col = col;
+        }
+
+        @Override
+        public String toString() {
+            return "<" + name + ">";
+        }
     }
 
     private void loadFXML() {
@@ -150,7 +326,7 @@ public class OutlinePanel extends VBox {
 
     private String getNameForItem(Object item) {
         if (item instanceof JasperDesignModel)
-            return "Report";
+            return this.reportName;
         if (item instanceof com.jasperstudio.model.BandModel)
             return ((com.jasperstudio.model.BandModel) item).getType() + " ["
                     + ((com.jasperstudio.model.BandModel) item).getHeight() + "px]";

@@ -37,7 +37,10 @@
                  </StackPane>
             </ScrollPane>
             
-            <TextArea fx:id="sourceEditor" editable="false" visible="false" style="-fx-font-family: 'Consolas', 'Monospace'; -fx-font-size: 12px;" />
+            <HBox fx:id="sourceContainer" visible="false" spacing="0">
+                 <TextArea fx:id="lineNumbers" editable="false" prefWidth="40" style="-fx-font-family: 'Consolas', 'Monospace'; -fx-font-size: 12px; -fx-text-fill: #888; -fx-background-color: #f0f0f0; -fx-control-inner-background: #f0f0f0; -fx-padding: 5 0 5 5;" />
+                 <TextArea fx:id="sourceEditor" editable="true" HBox.hgrow="ALWAYS" style="-fx-font-family: 'Consolas', 'Monospace'; -fx-font-size: 12px; -fx-padding: 5 5 5 5;" />
+            </HBox>
             
             <ScrollPane fx:id="previewContainer" fitToWidth="true" fitToHeight="true" visible="false" style="-fx-background-color: #555;">
                   <Group>

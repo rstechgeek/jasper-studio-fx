@@ -14,6 +14,10 @@ import org.slf4j.LoggerFactory;
  */
 public class DesignerEngine {
 
+    public enum ViewMode {
+        DESIGN, SOURCE, PREVIEW
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(DesignerEngine.class);
 
     private final javafx.collections.ObservableList<com.jasperstudio.descriptor.LogEntry> errorLogs = javafx.collections.FXCollections
@@ -30,6 +34,11 @@ public class DesignerEngine {
             true);
     private final javafx.beans.property.BooleanProperty showRulers = new javafx.beans.property.SimpleBooleanProperty(
             true);
+
+    private final ObjectProperty<ViewMode> viewMode = new SimpleObjectProperty<>(ViewMode.DESIGN);
+    private final javafx.beans.property.StringProperty xmlSource = new javafx.beans.property.SimpleStringProperty("");
+    // Start, End index of selection
+    private final ObjectProperty<javafx.util.Pair<Integer, Integer>> sourceSelection = new SimpleObjectProperty<>();
     // New View Properties
     private final javafx.beans.property.BooleanProperty snapToGuides = new javafx.beans.property.SimpleBooleanProperty(
             false);
@@ -386,6 +395,39 @@ public class DesignerEngine {
         javafx.application.Platform.runLater(() -> {
             errorLogs.add(0, new com.jasperstudio.descriptor.LogEntry(message, finalDesc));
         });
+    }
+
+    // View Mode Accessors
+    public ObjectProperty<ViewMode> viewModeProperty() {
+        return viewMode;
+    }
+
+    public void setViewMode(ViewMode mode) {
+        this.viewMode.set(mode);
+    }
+
+    public ViewMode getViewMode() {
+        return viewMode.get();
+    }
+
+    public javafx.beans.property.StringProperty xmlSourceProperty() {
+        return xmlSource;
+    }
+
+    public void setXmlSource(String xml) {
+        this.xmlSource.set(xml);
+    }
+
+    public String getXmlSource() {
+        return xmlSource.get();
+    }
+
+    public ObjectProperty<javafx.util.Pair<Integer, Integer>> sourceSelectionProperty() {
+        return sourceSelection;
+    }
+
+    public void setSourceSelection(int start, int end) {
+        this.sourceSelection.set(new javafx.util.Pair<>(start, end));
     }
 
     // -- Logic --

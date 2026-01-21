@@ -6,7 +6,7 @@
 
 <fx:root type="VBox" xmlns="http://javafx.com/javafx" xmlns:fx="http://javafx.com/fxml">
     <children>
-        <Label text="Structure" styleClass="sidebar-header" maxWidth="Infinity" />
+        <Label fx:id="lblHeader" text="Outline" styleClass="sidebar-header" maxWidth="Infinity" />
         <TreeView fx:id="treeView" showRoot="true" VBox.vgrow="ALWAYS" />
     </children>
 </fx:root>

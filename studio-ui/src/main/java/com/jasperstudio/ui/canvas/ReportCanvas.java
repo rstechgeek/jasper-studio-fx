@@ -94,6 +94,11 @@ public class ReportCanvas extends BorderPane {
     @FXML
     private HBox topBox;
 
+    @FXML
+    private HBox sourceContainer;
+    @FXML
+    private TextArea lineNumbers;
+
     public ReportCanvas(DesignerEngine engine) {
         this.engine = engine;
         loadFXML();
@@ -181,7 +186,7 @@ public class ReportCanvas extends BorderPane {
 
     // Switch to Design Mode
     private void showDesign() {
-        if (!sourceEditor.isVisible())
+        if (!sourceContainer.isVisible())
             return; // Already in design or preview?
 
         try {
@@ -191,8 +196,8 @@ public class ReportCanvas extends BorderPane {
             engine.setDesign(model);
 
             // UI Switch
-            sourceEditor.setVisible(false);
-            sourceEditor.setManaged(false);
+            sourceContainer.setVisible(false);
+            sourceContainer.setManaged(false);
             workspaceArea.setVisible(true);
             workspaceArea.setManaged(true);
             previewContainer.setVisible(false);
@@ -209,6 +214,8 @@ public class ReportCanvas extends BorderPane {
             btnSource.setDisable(false);
             btnPreview.setDisable(false);
 
+            engine.setViewMode(DesignerEngine.ViewMode.DESIGN);
+
         } catch (Exception ex) {
             engine.logError("Failed to switch to Design", ex);
             // Optionally show alert
@@ -217,7 +224,7 @@ public class ReportCanvas extends BorderPane {
 
     // Switch to Source Mode
     private void showSource() {
-        if (sourceEditor.isVisible())
+        if (sourceContainer.isVisible())
             return;
 
         if (engine.getDesign() != null) {
@@ -232,16 +239,51 @@ public class ReportCanvas extends BorderPane {
                 previewContainer.setVisible(false);
                 previewContainer.setManaged(false);
 
-                sourceEditor.setVisible(true);
-                sourceEditor.setManaged(true);
+                sourceContainer.setVisible(true);
+                sourceContainer.setManaged(true);
 
-                setCenter(sourceEditor);
+                setCenter(sourceContainer);
                 setLeft(null);
                 setTop(null); // Hide Ruler/Tools
 
                 btnSource.setDisable(true);
                 btnDesign.setDisable(false);
                 btnPreview.setDisable(false);
+
+                engine.setXmlSource(xml);
+                engine.setViewMode(DesignerEngine.ViewMode.SOURCE);
+
+                // Bind source updates
+                sourceEditor.textProperty().addListener((o, old, newXml) -> {
+                    if (sourceContainer.isVisible()) {
+                        engine.setXmlSource(newXml);
+                        updateLineNumbers();
+                    }
+                });
+
+                // Initial Line Numbers
+                updateLineNumbers();
+
+                // Sync Scroll
+                // We need to wait for layout/skin
+                Platform.runLater(() -> syncScroll());
+
+                // Selection sync listener (from Outline -> Editor)
+                engine.sourceSelectionProperty().addListener((o, old, pair) -> {
+                    if (pair != null && sourceContainer.isVisible()) {
+                        int start = pair.getKey();
+                        int end = pair.getValue();
+                        if (start >= 0 && end > start && end <= sourceEditor.getLength()) {
+                            sourceEditor.selectRange(start, end);
+                            // Optional: scrollTo
+                        }
+                    }
+                });
+
+                // Track Caret for Line Highlighting
+                sourceEditor.caretPositionProperty().addListener((obs, old, newVal) -> {
+                    highlightCurrentLine(newVal.intValue());
+                });
 
             } catch (Exception ex) {
                 engine.logError("Failed to generate Source", ex);
@@ -257,7 +299,7 @@ public class ReportCanvas extends BorderPane {
         // Ensure we capture latest from Source if coming from Source?
         // Or assume Source -> Design -> Preview flow?
         // Let's assume if in Source mode, parse first?
-        if (sourceEditor.isVisible()) {
+        if (sourceContainer.isVisible()) {
             try {
                 String xml = sourceEditor.getText();
                 JrxmlService service = new JrxmlService();
@@ -275,8 +317,8 @@ public class ReportCanvas extends BorderPane {
         // UI Switch
         workspaceArea.setVisible(false);
         workspaceArea.setManaged(false);
-        sourceEditor.setVisible(false);
-        sourceEditor.setManaged(false);
+        sourceContainer.setVisible(false);
+        sourceContainer.setManaged(false);
 
         previewContainer.setVisible(true);
         previewContainer.setManaged(true);
@@ -288,6 +330,8 @@ public class ReportCanvas extends BorderPane {
         btnPreview.setDisable(true);
         btnSource.setDisable(false);
         btnDesign.setDisable(false);
+
+        engine.setViewMode(DesignerEngine.ViewMode.PREVIEW);
 
         // Run Preview Logic (Async)
         new Thread(() -> {
@@ -309,6 +353,82 @@ public class ReportCanvas extends BorderPane {
                 engine.logError("Preview Generation Failed", ex);
             }
         }).start();
+    }
+
+    private void updateLineNumbers() {
+        String text = sourceEditor.getText();
+        if (text == null)
+            text = "";
+        int lines = 1;
+        for (char c : text.toCharArray()) {
+            if (c == '\n')
+                lines++;
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 1; i <= lines; i++) {
+            sb.append(i).append("\n");
+        }
+        lineNumbers.setText(sb.toString());
+    }
+
+    private void highlightCurrentLine(int caretPos) {
+        if (!sourceContainer.isVisible())
+            return;
+
+        String text = sourceEditor.getText();
+        if (text == null || text.isEmpty()) {
+            lineNumbers.deselect();
+            return;
+        }
+
+        // Calculate Line Index (0-based)
+        int lineIndex = 0;
+        int max = Math.min(caretPos, text.length());
+        for (int i = 0; i < max; i++) {
+            if (text.charAt(i) == '\n') {
+                lineIndex++;
+            }
+        }
+
+        // Select logic for lineNumbers TextArea
+        // Lines are: "1\n2\n3\n..."
+        String linesText = lineNumbers.getText();
+        if (linesText == null)
+            return;
+
+        int startObj = 0;
+        int currentLine = 0;
+        int len = linesText.length();
+
+        for (int i = 0; i < len; i++) {
+            if (currentLine == lineIndex) {
+                startObj = i;
+                // find end of this line
+                int endObj = linesText.indexOf('\n', startObj);
+                if (endObj == -1)
+                    endObj = len;
+
+                lineNumbers.selectRange(startObj, endObj);
+                return;
+            }
+
+            if (linesText.charAt(i) == '\n') {
+                currentLine++;
+            }
+        }
+    }
+
+    private void syncScroll() {
+        // Need to find scrollbars of both TextAreas and bind them
+        Node sb1 = sourceEditor.lookup(".scroll-bar:vertical");
+        Node sb2 = lineNumbers.lookup(".scroll-bar:vertical");
+        if (sb1 instanceof javafx.scene.control.ScrollBar && sb2 instanceof javafx.scene.control.ScrollBar) {
+            ((javafx.scene.control.ScrollBar) sb2).valueProperty()
+                    .bindBidirectional(((javafx.scene.control.ScrollBar) sb1).valueProperty());
+        }
+
+        // Also bind scrollTop property if simple scrollbars aren't found
+        lineNumbers.scrollTopProperty().bindBidirectional(sourceEditor.scrollTopProperty());
     }
 
     private void updateWorkspaceSize() {
