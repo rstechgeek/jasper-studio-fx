@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jasper Studio FX Documentation</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            color: #333;
+            background-color: #fff;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #eaeaea;
+            padding-bottom: 0.5rem;
+            margin-bottom: 2rem;
+        }
+        .doc-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            gap: 1.5rem;
+        }
+        .doc-item {
+            background: #ffffff;
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+        .doc-item:hover {
+            border-color: #0366d6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .doc-link {
+            display: block;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: inherit;
+        }
+        .doc-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #0366d6;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+        }
+        .doc-icon {
+            margin-right: 0.5rem;
+        }
+        .doc-desc {
+            color: #586069;
+            font-size: 0.95rem;
+            margin: 0;
+        }
+        footer {
+            margin-top: 3rem;
+            padding-top: 1rem;
+            border-top: 1px solid #eaeaea;
+            color: #6c757d;
+            font-size: 0.85rem;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Jasper Studio FX Documentation</h1>
+    <p>Welcome to the documentation hub. Please select a document below:</p>
+    
+    <ul class="doc-list">
+        <li class="doc-item">
+            <a href="developer_guide.md" class="doc-link">
+                <div class="doc-title">
+                    <span class="doc-icon">📘</span>
+                    Developer Guide
+                </div>
+                <p class="doc-desc">Technical details, setup instructions, and architecture overview for developers.</p>
+            </a>
+        </li>
+        <li class="doc-item">
+            <a href="srs.md" class="doc-link">
+                <div class="doc-title">
+                    <span class="doc-icon">📋</span>
+                    Software Requirements Specification (SRS)
+                </div>
+                <p class="doc-desc">Detailed functional and non-functional requirements regarding the application.</p>
+            </a>
+        </li>
+    </ul>
+
+    <footer>
+        <p>Generated for Jasper Studio FX</p>
+    </footer>
+</body>
+</html>
