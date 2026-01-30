@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.image.ImageView?>
@@ -42,11 +43,31 @@
                  <TextArea fx:id="sourceEditor" editable="true" HBox.hgrow="ALWAYS" style="-fx-font-family: 'Consolas', 'Monospace'; -fx-font-size: 12px; -fx-padding: 5 5 5 5;" />
             </HBox>
             
-            <ScrollPane fx:id="previewContainer" fitToWidth="true" fitToHeight="true" visible="false" style="-fx-background-color: #555;">
-                  <Group>
-                       <ImageView fx:id="previewImage" />
-                  </Group>
-            </ScrollPane>
+            <BorderPane fx:id="previewView" visible="false">
+                <center>
+                    <ScrollPane fx:id="previewScroll" fitToWidth="true" fitToHeight="true" style="-fx-background-color: #555;">
+                          <StackPane style="-fx-background-color: transparent;">
+                               <padding>
+                                   <Insets top="30" right="30" bottom="30" left="30" />
+                               </padding>
+                               <ImageView fx:id="previewImage" style="-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.5), 10, 0, 0, 0);" />
+                          </StackPane>
+                    </ScrollPane>
+                </center>
+                <bottom>
+                    <HBox alignment="CENTER" spacing="10" style="-fx-background-color: #f0f0f0; -fx-border-color: #ccc; -fx-border-width: 1 0 0 0; -fx-padding: 5;">
+                         <Button text="|&lt;" onAction="#onFirstPage"/>
+                         <Button text="&lt;" onAction="#onPrevPage"/>
+                         <Label fx:id="lblPageStatus" text="Page 1 of 1" />
+                         <Button text="&gt;" onAction="#onNextPage"/>
+                         <Button text="&gt;|" onAction="#onLastPage"/>
+                         <Label text=" | " style="-fx-text-fill: #ccc;"/>
+                         <Button text="-" onAction="#onPreviewZoomOut" prefWidth="30"/>
+                         <Label fx:id="lblPreviewZoom" text="100%" minWidth="50" alignment="CENTER"/>
+                         <Button text="+" onAction="#onPreviewZoomIn" prefWidth="30"/>
+                    </HBox>
+                </bottom>
+            </BorderPane>
         </StackPane>
     </center>
     <bottom>

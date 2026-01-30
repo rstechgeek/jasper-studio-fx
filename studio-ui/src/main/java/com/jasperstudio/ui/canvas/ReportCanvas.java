@@ -88,7 +88,19 @@ public class ReportCanvas extends BorderPane {
     @FXML
     private TextArea sourceEditor;
     @FXML
-    private ScrollPane previewContainer;
+    private BorderPane previewView;
+    @FXML
+    private ScrollPane previewScroll;
+    @FXML
+    private Label lblPageStatus;
+    @FXML
+    private Label lblPreviewZoom;
+
+    // Pagination State
+    private JasperPrint currentJasperPrint;
+    private int currentPageIndex = 0;
+    private double previewZoomFactor = 1.0;
+
     @FXML
     private ImageView previewImage;
     @FXML
@@ -141,6 +153,40 @@ public class ReportCanvas extends BorderPane {
         Platform.runLater(() -> {
             internalScrollPane.setHvalue(0.5);
             internalScrollPane.setVvalue(0.5);
+
+            // Reparent layers to pageGroup to ensure unified scaling
+            if (pageGroup != null && pagePane != null) {
+                // Ensure pagePane is first
+                if (!pageGroup.getChildren().contains(pagePane)) {
+                    if (pagePane.getParent() != pageGroup && pagePane.getParent() instanceof Pane) {
+                        ((Pane) pagePane.getParent()).getChildren().remove(pagePane);
+                        pageGroup.getChildren().add(pagePane);
+                    }
+                }
+
+                // Helper to move layer
+                reparentLayer(gridLayer, pageGroup);
+                reparentLayer(contentLayer, pageGroup);
+                reparentLayer(adornerLayer, pageGroup);
+
+                // Force Z-Order
+                pagePane.toBack();
+                gridLayer.toFront();
+                contentLayer.toFront();
+                adornerLayer.toFront();
+
+                // Bind sizes since Group doesn't resize children
+                bindLayerSize(gridLayer, pagePane);
+                bindLayerSize(contentLayer, pagePane);
+                bindLayerSize(adornerLayer, pagePane);
+
+                // Fix Drift: Align everything to TOP_LEFT so (0,0) is stable
+                workspaceArea.setAlignment(Pos.TOP_LEFT);
+
+                // Set initial margin (padding)
+                StackPane.setMargin(pageGroup, new javafx.geometry.Insets(20));
+            }
+
             updateWorkspaceSize();
         });
 
@@ -172,36 +218,62 @@ public class ReportCanvas extends BorderPane {
         pagePane.widthProperty().addListener(sizeListener);
         pagePane.heightProperty().addListener(sizeListener);
 
+        internalScrollPane.viewportBoundsProperty().addListener((o, old, v) -> {
+            updateWorkspaceSize();
+            Platform.runLater(this::updateRulers);
+        });
+
         // CSS Classes
         internalScrollPane.getStyleClass().add("canvas-background");
         workspaceArea.getStyleClass().add("canvas-background");
         pagePane.getStyleClass().add("page-shadow");
+
+        // Setup keyboard shortcuts for preview zoom
+        previewView.setOnKeyPressed(event -> {
+            if (event.isControlDown()) {
+                if (event.getCode() == javafx.scene.input.KeyCode.EQUALS ||
+                        event.getCode() == javafx.scene.input.KeyCode.PLUS) {
+                    onPreviewZoomIn();
+                    event.consume();
+                } else if (event.getCode() == javafx.scene.input.KeyCode.MINUS) {
+                    onPreviewZoomOut();
+                    event.consume();
+                }
+            }
+        });
     }
 
     private void setupViewModes() {
         btnDesign.setOnAction(e -> showDesign());
         btnSource.setOnAction(e -> showSource());
         btnPreview.setOnAction(e -> showPreview());
+
+        // Initial State: Design Mode is active by default
+        btnDesign.setDisable(true);
     }
 
     // Switch to Design Mode
+    // Switch to Design Mode
     private void showDesign() {
-        if (!sourceContainer.isVisible())
-            return; // Already in design or preview?
+        if (workspaceArea.isVisible())
+            return; // Already in design
 
         try {
-            String xml = sourceEditor.getText();
-            JrxmlService service = new JrxmlService();
-            JasperDesignModel model = service.loadFromString(xml);
-            engine.setDesign(model);
+            // Only update design from Source if we are coming from Source View
+            if (sourceContainer.isVisible()) {
+                String xml = sourceEditor.getText();
+                JrxmlService service = new JrxmlService();
+                JasperDesignModel model = service.loadFromString(xml);
+                engine.setDesign(model);
+            }
 
             // UI Switch
             sourceContainer.setVisible(false);
             sourceContainer.setManaged(false);
             workspaceArea.setVisible(true);
             workspaceArea.setManaged(true);
-            previewContainer.setVisible(false);
-            previewContainer.setManaged(false);
+            previewView.setVisible(false);
+            previewView.setManaged(false);
 
             setCenter(internalScrollPane);
             setLeft(vRuler);
@@ -236,8 +308,8 @@ public class ReportCanvas extends BorderPane {
                 // UI Switch
                 workspaceArea.setVisible(false);
                 workspaceArea.setManaged(false);
-                previewContainer.setVisible(false);
-                previewContainer.setManaged(false);
+                previewView.setVisible(false);
+                previewView.setManaged(false);
 
                 sourceContainer.setVisible(true);
                 sourceContainer.setManaged(true);
@@ -291,14 +363,12 @@ public class ReportCanvas extends BorderPane {
         }
     }
 
-    // Switch to Preview Mode (Updated logic)
+    // Switch to Preview Mode with Multi-page Support
     private void showPreview() {
-        if (previewContainer.isVisible())
+        if (previewView.isVisible())
             return;
 
-        // Ensure we capture latest from Source if coming from Source?
-        // Or assume Source -> Design -> Preview flow?
-        // Let's assume if in Source mode, parse first?
+        // Ensure we capture latest from Source if coming from Source
         if (sourceContainer.isVisible()) {
             try {
                 String xml = sourceEditor.getText();
@@ -320,10 +390,10 @@ public class ReportCanvas extends BorderPane {
         sourceContainer.setVisible(false);
         sourceContainer.setManaged(false);
 
-        previewContainer.setVisible(true);
-        previewContainer.setManaged(true);
+        previewView.setVisible(true);
+        previewView.setManaged(true);
 
-        setCenter(previewContainer);
+        setCenter(previewView);
         setLeft(null);
         setTop(null); // Hide Ruler/Tools
 
@@ -338,21 +408,111 @@ public class ReportCanvas extends BorderPane {
             try {
                 JasperDesign jd = engine.getDesign().getDesign();
                 JasperReport jr = JasperCompileManager.compileReport(jd);
-                JasperPrint jp = JasperFillManager.fillReport(jr, new HashMap<>(), new JREmptyDataSource());
+                currentJasperPrint = JasperFillManager.fillReport(jr, new HashMap<>(), new JREmptyDataSource());
+                currentPageIndex = 0;
 
-                Image fxImage = null;
-                if (!jp.getPages().isEmpty()) {
-                    BufferedImage bim = (BufferedImage) JasperPrintManager.printPageToImage(jp, 0, 2.0f);
-                    fxImage = SwingFXUtils.toFXImage(bim, null);
-                }
-
-                final Image fimg = fxImage;
-                Platform.runLater(() -> previewImage.setImage(fimg));
+                renderCurrentPage();
 
             } catch (Exception ex) {
                 engine.logError("Preview Generation Failed", ex);
             }
         }).start();
+    }
+
+    private void renderCurrentPage() {
+        if (currentJasperPrint == null)
+            return;
+
+        int totalPages = currentJasperPrint.getPages().size();
+        if (totalPages == 0) {
+            Platform.runLater(() -> {
+                previewImage.setImage(null);
+                lblPageStatus.setText("No Pages");
+            });
+            return;
+        }
+
+        try {
+            // Generate High-DPI image (2x) for quality
+            BufferedImage bim = (BufferedImage) JasperPrintManager.printPageToImage(currentJasperPrint,
+                    currentPageIndex, 2.0f);
+            final Image fimg = SwingFXUtils.toFXImage(bim, null);
+
+            Platform.runLater(() -> {
+                previewImage.setImage(fimg);
+                lblPageStatus.setText("Page " + (currentPageIndex + 1) + " of " + totalPages);
+
+                if (fimg != null) {
+                    // Constrain display size to actual Page Size with zoom applied
+                    JasperDesign jdRef = engine.getDesign().getDesign();
+                    previewImage.setFitWidth(jdRef.getPageWidth() * previewZoomFactor);
+                    previewImage.setFitHeight(jdRef.getPageHeight() * previewZoomFactor);
+                    previewImage.setPreserveRatio(true);
+                }
+            });
+        } catch (JRException e) {
+            engine.logError("Failed to render page " + currentPageIndex, e);
+        }
+    }
+
+    @FXML
+    private void onNextPage() {
+        if (currentJasperPrint != null && currentPageIndex < currentJasperPrint.getPages().size() - 1) {
+            currentPageIndex++;
+            new Thread(this::renderCurrentPage).start();
+        }
+    }
+
+    @FXML
+    private void onPrevPage() {
+        if (currentJasperPrint != null && currentPageIndex > 0) {
+            currentPageIndex--;
+            new Thread(this::renderCurrentPage).start();
+        }
+    }
+
+    @FXML
+    private void onFirstPage() {
+        if (currentJasperPrint != null && currentPageIndex > 0) {
+            currentPageIndex = 0;
+            new Thread(this::renderCurrentPage).start();
+        }
+    }
+
+    @FXML
+    private void onLastPage() {
+        if (currentJasperPrint != null) {
+            int last = currentJasperPrint.getPages().size() - 1;
+            if (currentPageIndex < last) {
+                currentPageIndex = last;
+                new Thread(this::renderCurrentPage).start();
+            }
+        }
+    }
+
+    @FXML
+    private void onPreviewZoomIn() {
+        if (previewZoomFactor < 3.0) {
+            previewZoomFactor += 0.25;
+            updatePreviewZoomLabel();
+            renderCurrentPage();
+        }
+    }
+
+    @FXML
+    private void onPreviewZoomOut() {
+        if (previewZoomFactor > 0.25) {
+            previewZoomFactor -= 0.25;
+            updatePreviewZoomLabel();
+            renderCurrentPage();
+        }
+    }
+
+    private void updatePreviewZoomLabel() {
+        Platform.runLater(() -> {
+            int percent = (int) (previewZoomFactor * 100);
+            lblPreviewZoom.setText(percent + "%");
+        });
     }
 
     private void updateLineNumbers() {
@@ -432,15 +592,43 @@ public class ReportCanvas extends BorderPane {
     }
 
     private void updateWorkspaceSize() {
+        if (pagePane == null)
+            return;
+
         double zoom = engine.zoomFactorProperty().get();
-        double w = pagePane.getWidth() * zoom;
-        double h = pagePane.getHeight() * zoom;
+        double contentW = pagePane.getWidth() * zoom;
+        double contentH = pagePane.getHeight() * zoom;
 
-        // Add some padding/margin to the "scrollable" area so it looks nice
-        double padding = 10 * zoom;
+        // Viewport dimensions (scrollable area visible size)
+        double viewportW = internalScrollPane.getViewportBounds().getWidth();
+        double viewportH = internalScrollPane.getViewportBounds().getHeight();
 
-        workspaceArea.setMinWidth(w + padding);
-        workspaceArea.setMinHeight(h + padding);
+        // Default Padding
+        double pad = 20;
+
+        // Smart Centering:
+        // If content is smaller than viewport, calculate padding to center it.
+        // Otherwise, use fixed padding.
+
+        double padLeft = pad;
+        double padTop = pad;
+
+        if (contentW + (pad * 2) < viewportW) {
+            padLeft = (viewportW - contentW) / 2;
+        }
+
+        if (contentH + (pad * 2) < viewportH) {
+            padTop = (viewportH - contentH) / 2;
+        }
+
+        // Apply calculated margin to pageGroup
+        StackPane.setMargin(pageGroup, new javafx.geometry.Insets(padTop, pad, pad, padLeft));
+
+        // MinSize includes strictly necessary scrollable area (Content + Fixed Pad)
+        // If we use centering margin, the actual layout size will be effectively
+        // Viewport size.
+        workspaceArea.setMinWidth(contentW + (pad * 2));
+        workspaceArea.setMinHeight(contentH + (pad * 2));
     }
 
     private void updateRulers() {
@@ -469,6 +657,7 @@ public class ReportCanvas extends BorderPane {
 
         // WorkspaceArea aligns children to Center by default.
         // So Page is at (contentW - pageW) / 2
+        // If padding is constant 40, this will be always 20.
         double pageXInWs = (contentW - pageW) / 2;
         double pageYInWs = (contentH - pageH) / 2;
 
@@ -490,9 +679,15 @@ public class ReportCanvas extends BorderPane {
         }
 
         engine.zoomFactorProperty().addListener((obs, oldVal, newZoom) -> {
-            // Scale pagePane (inside pageGroup) so pageGroup grows
-            pagePane.setScaleX(newZoom.doubleValue());
-            pagePane.setScaleY(newZoom.doubleValue());
+            double z = newZoom.doubleValue();
+            javafx.scene.transform.Scale scale = new javafx.scene.transform.Scale(z, z, 0, 0);
+
+            // Scale Page Group Only (Contains All Layers now)
+            pageGroup.getTransforms().clear();
+            pageGroup.getTransforms().add(scale);
+
+            // Explicitly update workspace min size to match scaled content
+            updateWorkspaceSize();
 
             // workspace min size updated by listener above
             Platform.runLater(this::updateRulers);
@@ -500,8 +695,21 @@ public class ReportCanvas extends BorderPane {
 
         // Initial Zoom Apply
         double z = engine.zoomFactorProperty().get();
-        pagePane.setScaleX(z);
-        pagePane.setScaleY(z);
+        javafx.scene.transform.Scale initialScale = new javafx.scene.transform.Scale(z, z, 0, 0);
+
+        pageGroup.getTransforms().clear();
+        pageGroup.getTransforms().add(initialScale);
+
+        // Ensure children/layers are NOT scaled independently via properties
+        pagePane.setScaleX(1);
+        pagePane.setScaleY(1);
+        gridLayer.setScaleX(1);
+        gridLayer.setScaleY(1);
+
+        // Clear transforms on children if any were added previously
+        gridLayer.getTransforms().clear();
+        adornerLayer.getTransforms().clear();
+
         updateWorkspaceSize();
 
         engine.snapToGridProperty().addListener((obs, old, newVal) -> redrawGrid());
@@ -522,38 +730,87 @@ public class ReportCanvas extends BorderPane {
     private void redrawGrid() {
         if (!gridLayer.getChildren().contains(gridCanvas)) {
             gridLayer.getChildren().add(0, gridCanvas);
-            gridCanvas.widthProperty().bind(gridLayer.widthProperty());
-            gridCanvas.heightProperty().bind(gridLayer.heightProperty());
             gridCanvas.setMouseTransparent(true);
 
-            gridLayer.widthProperty().addListener(o -> drawGridLines());
-            gridLayer.heightProperty().addListener(o -> drawGridLines());
+            // Re-bind or listener?
+            // We need to redraw when:
+            // 1. GridLayer size changes
+            // 2. Zoom changes (to update resolution)
+            // 3. Grid properties change
+
+            ChangeListener<Number> redrawListener = (o, old, v) -> drawGridLines();
+            gridLayer.widthProperty().addListener(redrawListener);
+            gridLayer.heightProperty().addListener(redrawListener);
+            engine.zoomFactorProperty().addListener(redrawListener);
         }
         drawGridLines();
     }
 
     private void drawGridLines() {
-        GraphicsContext gc = gridCanvas.getGraphicsContext2D();
-        gc.clearRect(0, 0, gridCanvas.getWidth(), gridCanvas.getHeight());
-
         if (!engine.showGridProperty().get()) {
+            GraphicsContext gc = gridCanvas.getGraphicsContext2D();
+            gc.clearRect(0, 0, gridCanvas.getWidth(), gridCanvas.getHeight());
             return;
         }
 
-        double w = gridCanvas.getWidth();
-        double h = gridCanvas.getHeight();
-        int step = engine.gridSizeProperty().get();
-        if (step < 5)
-            step = 5;
+        double zoom = engine.zoomFactorProperty().get();
+        // Determine the logical size of the grid layer (unscaled units)
+        double logicalW = gridLayer.getWidth();
+        double logicalH = gridLayer.getHeight();
+
+        // We want the Canvas to be sized to PHYSICAL pixels (Logic * Zoom)
+        // so that 1px line stroke is actually 1 screen pixel.
+        double physicalW = logicalW * zoom;
+        double physicalH = logicalH * zoom;
+
+        if (physicalW <= 0 || physicalH <= 0)
+            return;
+
+        gridCanvas.setWidth(physicalW);
+        gridCanvas.setHeight(physicalH);
+
+        // Inverse scale the canvas node so it fits into the logical layout space
+        // We use a Transform to pivot at (0,0) explicitly.
+
+        // Center-based scaling:
+        // We want Top-Left to align.
+        // DeltaX = (PhysicalW - LogicalW) / 2 <- this is how much it moves Right due to
+        // center pivot growth
+        // We want to move it LEFT by this amount to keep Left aligned? No.
+        // Let's use setPivot logic if possible, or just standard transforms.
+
+        gridCanvas.getTransforms().clear();
+        javafx.scene.transform.Scale scale = new javafx.scene.transform.Scale(1.0 / zoom, 1.0 / zoom, 0, 0);
+        gridCanvas.getTransforms().add(scale);
+
+        // Now draw
+        GraphicsContext gc = gridCanvas.getGraphicsContext2D();
+        gc.clearRect(0, 0, physicalW, physicalH);
 
         gc.setStroke(Color.LIGHTGRAY);
-        gc.setLineWidth(0.5);
+        gc.setLineWidth(1.0); // 1 physical pixel
 
-        for (double x = 0; x < w; x += step) {
-            gc.strokeLine(x, 0, x, h);
+        // Grid Step in Logical Units
+        int stepXLogical = engine.gridSpacingXProperty().get();
+        int stepYLogical = engine.gridSpacingYProperty().get();
+        if (stepXLogical < 5)
+            stepXLogical = 5;
+        if (stepYLogical < 5)
+            stepYLogical = 5;
+
+        // Grid Step in Physical Units
+        double stepXPhysical = stepXLogical * zoom;
+        double stepYPhysical = stepYLogical * zoom;
+
+        for (double x = 0; x < physicalW; x += stepXPhysical) {
+            // Snap to pixel
+            double val = Math.round(x) + 0.5;
+            gc.strokeLine(val, 0, val, physicalH);
         }
-        for (double y = 0; y < h; y += step) {
-            gc.strokeLine(0, y, w, y);
+
+        for (double y = 0; y < physicalH; y += stepYPhysical) {
+            double val = Math.round(y) + 0.5;
+            gc.strokeLine(0, val, physicalW, val);
         }
     }
 
@@ -800,10 +1057,19 @@ public class ReportCanvas extends BorderPane {
         // Let's restructure:
         // contentLayer will contain a VBox.
         VBox bandsContainer = new VBox();
-        bandsContainer.setPrefWidth(design.getPageWidth());
 
-        // Bind VBox width
-        design.pageWidthProperty().addListener((o, old, v) -> bandsContainer.setPrefWidth(v.doubleValue()));
+        // Initial width and position considering margins
+        bandsContainer.setPrefWidth(
+                design.getPageWidth() - design.leftMarginProperty().get() - design.rightMarginProperty().get());
+        bandsContainer.setLayoutX(design.leftMarginProperty().get());
+        bandsContainer.setLayoutY(design.topMarginProperty().get());
+
+        // Bind VBox width and position to design properties to stay updated
+        bandsContainer.layoutXProperty().bind(design.leftMarginProperty());
+        bandsContainer.layoutYProperty().bind(design.topMarginProperty());
+        bandsContainer.prefWidthProperty().bind(design.pageWidthProperty()
+                .subtract(design.leftMarginProperty())
+                .subtract(design.rightMarginProperty()));
 
         contentLayer.getChildren().clear();
         contentLayer.getChildren().add(bandsContainer);
@@ -1253,5 +1519,27 @@ public class ReportCanvas extends BorderPane {
         });
 
         selectionAdorner.getChildren().add(handle);
+    }
+
+    private void reparentLayer(Node layer, Group targetGroup) {
+        if (layer != null && layer.getParent() != targetGroup) {
+            if (layer.getParent() instanceof Pane) {
+                ((Pane) layer.getParent()).getChildren().remove(layer);
+            } else if (layer.getParent() instanceof Group) {
+                ((Group) layer.getParent()).getChildren().remove(layer);
+            }
+            targetGroup.getChildren().add(layer);
+        }
+    }
+
+    private void bindLayerSize(Pane layer, Pane reference) {
+        if (layer != null && reference != null) {
+            layer.prefWidthProperty().bind(reference.widthProperty());
+            layer.prefHeightProperty().bind(reference.heightProperty());
+            layer.minWidthProperty().bind(reference.widthProperty());
+            layer.minHeightProperty().bind(reference.heightProperty());
+            layer.maxWidthProperty().bind(reference.widthProperty());
+            layer.maxHeightProperty().bind(reference.heightProperty());
+        }
     }
 }

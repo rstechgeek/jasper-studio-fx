@@ -27,7 +27,10 @@ public class DesignerEngine {
 
     private final ObjectProperty<JasperDesignModel> currentDesign = new SimpleObjectProperty<>();
     private final DoubleProperty zoomFactor = new SimpleDoubleProperty(1.0);
-    private final javafx.beans.property.IntegerProperty gridSize = new javafx.beans.property.SimpleIntegerProperty(10);
+    private final javafx.beans.property.IntegerProperty gridSpacingX = new javafx.beans.property.SimpleIntegerProperty(
+            10);
+    private final javafx.beans.property.IntegerProperty gridSpacingY = new javafx.beans.property.SimpleIntegerProperty(
+            10);
     private final javafx.beans.property.BooleanProperty snapToGrid = new javafx.beans.property.SimpleBooleanProperty(
             false);
     private final javafx.beans.property.BooleanProperty showGrid = new javafx.beans.property.SimpleBooleanProperty(
@@ -119,10 +122,10 @@ public class DesignerEngine {
             design.setPageWidth(595); // A4
             design.setPageHeight(842);
             design.setColumnWidth(555);
-            design.setLeftMargin(0);
-            design.setRightMargin(0);
-            design.setTopMargin(0);
-            design.setBottomMargin(0);
+            design.setLeftMargin(10);
+            design.setRightMargin(10);
+            design.setTopMargin(10);
+            design.setBottomMargin(10);
 
             // Ensure all standard bands exist
             createBand(design, "Title");
@@ -285,7 +288,15 @@ public class DesignerEngine {
     }
 
     public javafx.beans.property.IntegerProperty gridSizeProperty() {
-        return gridSize;
+        return gridSpacingX; // Backward compatibility
+    }
+
+    public javafx.beans.property.IntegerProperty gridSpacingXProperty() {
+        return gridSpacingX;
+    }
+
+    public javafx.beans.property.IntegerProperty gridSpacingYProperty() {
+        return gridSpacingY;
     }
 
     public javafx.beans.property.BooleanProperty snapToGridProperty() {

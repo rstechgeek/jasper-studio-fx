@@ -13,6 +13,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.IOException;
+import com.jasperstudio.ui.dialogs.GridSizeDialog;
+import javafx.util.Pair;
+import java.util.Optional;
 
 /**
  * The main shell of the application.
@@ -108,6 +111,8 @@ public class MainWorkspace extends BorderPane {
     private CheckMenuItem menuShowPDF508Tags;
     @FXML
     private CheckMenuItem menuShowErrorsForElements;
+    @FXML
+    private MenuItem menuGridSize;
 
     @FXML
     private RadioMenuItem menuStyleLight;
@@ -350,6 +355,11 @@ public class MainWorkspace extends BorderPane {
         btnActivityProblems.selectedProperty().addListener((obs, old, isSelected) -> {
             toggleSplitItem(mainSplit, bottomContainer, isSelected, 1);
         });
+
+        // Initial State Sync: If panel is in view, select the button
+        if (mainSplit.getItems().contains(bottomContainer)) {
+            btnActivityProblems.setSelected(true);
+        }
     }
 
     private void setupSidebarToggle(ToggleButton btn, SplitPane sidebar, Node panel, int centerSplitIndex) {
@@ -582,6 +592,23 @@ public class MainWorkspace extends BorderPane {
     @FXML
     private void onExit() {
         System.exit(0);
+    }
+
+    @FXML
+    private void onGridSize() {
+        if (currentEngine == null)
+            return;
+
+        int currentX = currentEngine.gridSpacingXProperty().get();
+        int currentY = currentEngine.gridSpacingYProperty().get();
+
+        GridSizeDialog dialog = new GridSizeDialog(currentX, currentY);
+        Optional<Pair<Integer, Integer>> result = dialog.showAndWait();
+
+        result.ifPresent(spacing -> {
+            currentEngine.gridSpacingXProperty().set(spacing.getKey());
+            currentEngine.gridSpacingYProperty().set(spacing.getValue());
+        });
     }
 
     @FXML
