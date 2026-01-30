@@ -1,0 +1,22 @@
+
+    private void reparentLayer(Node layer, Group targetGroup) {
+        if (layer != null && layer.getParent() != targetGroup) {
+            if (layer.getParent() instanceof Pane parent) {
+                parent.getChildren().remove(layer);
+            } else if (layer.getParent() instanceof Group parent) {
+                parent.getChildren().remove(layer);
+            }
+            targetGroup.getChildren().add(layer);
+        }
+    }
+
+    private void bindLayerSize(Pane layer, Pane reference) {
+        if (layer != null && reference != null) {
+            layer.prefWidthProperty().bind(reference.widthProperty());
+            layer.prefHeightProperty().bind(reference.heightProperty());
+            layer.minWidthProperty().bind(reference.widthProperty());
+            layer.minHeightProperty().bind(reference.heightProperty());
+            layer.maxWidthProperty().bind(reference.widthProperty());
+            layer.maxHeightProperty().bind(reference.heightProperty());
+        }
+    }

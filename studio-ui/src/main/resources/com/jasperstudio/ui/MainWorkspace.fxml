@@ -61,7 +61,7 @@
                      <CheckMenuItem fx:id="menuShowGrid" text="Show Grid"/>
                      <CheckMenuItem fx:id="menuSnapToGrid" text="Snap To Grid"/>
                      <CheckMenuItem fx:id="menuSnapToGeometry" text="Snap To Geometry"/>
-                     <MenuItem text="Grid Size..."/>
+                     <MenuItem fx:id="menuGridSize" text="Grid Size..." onAction="#onGridSize"/>
                      <SeparatorMenuItem/>
                      <CheckMenuItem fx:id="menuShowSpreadsheetTags" text="Show Spreadsheet Tags"/>
                      <CheckMenuItem fx:id="menuShowJSONTags" text="Show JSON Tags"/>
