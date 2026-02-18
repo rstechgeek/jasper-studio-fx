@@ -1,7 +1,0 @@
-com/jasperstudio/descriptor/Command.class
-com/jasperstudio/descriptor/MoveElementCommand.class
-com/jasperstudio/descriptor/ChangePropertyCommand.class
-com/jasperstudio/descriptor/LogEntry.class
-com/jasperstudio/descriptor/ResizeElementCommand.class
-com/jasperstudio/descriptor/HistoryManager.class
-com/jasperstudio/designer/DesignerEngine.class
